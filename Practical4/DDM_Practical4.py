@@ -39,10 +39,17 @@ class Mesh():
     # All subsequent calls that do something with edges should return their indices. Getting the actual edge can then be done by calling get_edge(index).
     def build_edge_list(self):
     
-        # TODO: implement yourself
-
-        self.edges = [ (0, 1), (1, 2) ]
-    
+        self.edges = []
+        for triangle in self.faces:
+            for i in range(3):
+                j = i + 1
+                if j == 3:
+                    j = 0
+                edge = (triangle[i], triangle[j])
+                edge_r = (triangle[j], triangle[i])
+                if edge not in self.edges and edge_r not in self.edges:
+                    self.edges.append( edge )
+        
     # ACCESSORS
     
     def get_vertices(self):
@@ -75,10 +82,20 @@ class Mesh():
     
     # Looks up the edges belonging to this face in the edge list and returns their INDICES (not value). Make sure that each edge is unique (recall that (1, 0) == (0, 1)). These should match the order of your weights.
     def get_face_edges(self, face):
-    
-        # TODO: implement yourself
-        
-        return [] 
+        indices = []
+        for i in range (3):
+            j = i + 1
+            if j == 3:
+                j = 0
+            edge = (face[i], face[j])
+            edge_r = (face[j], face[i])
+            
+            try:
+                indices.append (self.edges.index(edge))
+            except:
+                indices.append (self.edges.index(edge_r))
+            
+        return indices
     
     # Returns the vertex coordinates of the vertices of the given edge (a pair of vertex indices e.g. (0,1) ) 
     def get_edge_vertices(self, edge):
@@ -102,10 +119,27 @@ class Mesh():
         
     # Returns whether the edge has two adjacent faces
     def is_boundary_edge(self, edge_index):
-        
-        # TODO: implement yourself
-        
-        return False
+        print ("Testing edge:", self.edges[edge_index])
+        n = 0
+        def face_contains_edge(face):
+            for i in range (3):
+                j = i + 1
+                if j == 3:
+                    j = 0
+                f_edge = (face[i], face[j])
+                f_edge_r = (face[j], face[i])
+                
+                edge_vs = self.edges[edge_index]
+                r_edge = (self.vertices[edge_vs[0]], self.vertices[edge_vs[1]])
+                print (r_edge, f_edge)
+                if r_edge == f_edge or r_edge == f_edge_r:
+                    return True
+            return False
+   
+        for face in self.faces:
+            if face_contains_edge(face):
+                n += 1
+        return n
     
     # Returns the boundary of the mesh by returning the indices of the edges (from the internal edge list) that lie around the boundary.
     def boundary_edges(self):
@@ -127,11 +161,15 @@ def DDM_Practical4(context):
     vertices = [Vector( (0,0,0) ), Vector( (0,1,0) ), Vector( (1,1,0) ), Vector( (1,0,0) )]
     
     # The faces are stored as triplets (triangles) of vertex indices, polygons need to be triangulated as in previous practicals. This time edges should also be extracted.
-    faces = [ (0, 1, 2), (0, 3, 4) ]
+    faces = [ (0, 1, 2), (1, 2, 3) ]
     
     # Construct a mesh with this data
-    M = get_mesh()
-    
+    #M = get_mesh()
+    M = Mesh(vertices, faces)
+    print ("E", M.edges)
+    print ("E (2, 0)", M.is_boundary_edge( 2 ) )
+    print ("E (1, 0)", M.is_boundary_edge( 0 ) )   
+    # M.get_face_edges( (0, 1, 2) )
     show_mesh(M, "test mesh")
     
     # You can now use the accessors to access the mesh data
@@ -255,7 +293,7 @@ def show_mesh(M, name):
     edges = []
     faces = []
     verts = []
-    
+    print (M.vertices)
     for tri in M.faces:
         verts_indices = [0, 0, 0]
         for j in range(3):
