@@ -116,7 +116,7 @@ class Mesh():
                 if edge_vs == f_edge or edge_vs == f_edge_r:
                     return True
             return False
-        # TODO: implement yourself
+
         for face in self.faces:
             if face_contains_edge(face):
                 flap.append(face)
@@ -142,9 +142,15 @@ class Mesh():
     # Returns the boundary of the mesh by returning the indices of the edges (from the internal edge list) that lie around the boundary.
     def boundary_edges(self):
         
-        # TODO: implement yourself
-        
-        return False
+        boundary = []
+        for edge in self.edges:
+            if is_boundary_edge:
+                if edge[0] not in boundary:
+                    boundary.append (edge[0])
+                if edge[1] not in boundary:
+                    boundary.append (edge[1])
+                
+        return boundary
         
     # Place any other accessors you need here
     
