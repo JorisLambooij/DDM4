@@ -263,8 +263,12 @@ def uniform_weights(M, r):
 
     # TODO: implement yourself
     weights = []
-    for edge in M.edges:
-
+    for edgeIndex in range(len(M.edges)):
+        if M.get_flaps(edgeIndex).length == 1:
+            weights.append(0)
+        else:
+            weights.append(1)
+    return weights
     
 # Given a set of weights, return M with the uv-coordinates set according to the passed weights
 def Convex_Boundary_Method(M, weights):
