@@ -103,12 +103,26 @@ class Mesh():
     
     # Returns the flap of the given edge belonging to edge_index, that is two faces connected to the edge 1 for a boundary edge, 2 for internal edges
     def get_flaps(self, edge_index):
-    
+        flap = []
+        def face_contains_edge(face):
+            for i in range (3):
+                j = i + 1
+                if j == 3:
+                    j = 0
+                f_edge = (face[i], face[j])
+                f_edge_r = (face[j], face[i])
+                
+                edge_vs = self.edges[edge_index]
+                if edge_vs == f_edge or edge_vs == f_edge_r:
+                    return True
+            return False
         # TODO: implement yourself
-        
+        for face in self.faces:
+            if face_contains_edge(face):
+                flap.append(face)
         # Watch out: edges might be on the boundary
         
-        return [ (0, 1, 2), (0, 3, 4) ]
+        return flap
         
     # Returns the length of the given edge with edge_index
     def get_edge_length(self, edge_index):
@@ -119,27 +133,8 @@ class Mesh():
         
     # Returns whether the edge has two adjacent faces
     def is_boundary_edge(self, edge_index):
-        print ("Testing edge:", self.edges[edge_index])
-        n = 0
-        def face_contains_edge(face):
-            for i in range (3):
-                j = i + 1
-                if j == 3:
-                    j = 0
-                f_edge = (face[i], face[j])
-                f_edge_r = (face[j], face[i])
-                
-                edge_vs = self.edges[edge_index]
-                r_edge = (self.vertices[edge_vs[0]], self.vertices[edge_vs[1]])
-                print (r_edge, f_edge)
-                if r_edge == f_edge or r_edge == f_edge_r:
-                    return True
-            return False
-   
-        for face in self.faces:
-            if face_contains_edge(face):
-                n += 1
-        return n
+        flap = self.get_flaps(edge_index)
+        return len(flap) == 2
     
     # Returns the boundary of the mesh by returning the indices of the edges (from the internal edge list) that lie around the boundary.
     def boundary_edges(self):
@@ -161,14 +156,12 @@ def DDM_Practical4(context):
     vertices = [Vector( (0,0,0) ), Vector( (0,1,0) ), Vector( (1,1,0) ), Vector( (1,0,0) )]
     
     # The faces are stored as triplets (triangles) of vertex indices, polygons need to be triangulated as in previous practicals. This time edges should also be extracted.
-    faces = [ (0, 1, 2), (1, 2, 3) ]
+    faces = [ (0, 1, 2), (0, 2, 3) ]
     
     # Construct a mesh with this data
-    #M = get_mesh()
-    M = Mesh(vertices, faces)
-    print ("E", M.edges)
-    print ("E (2, 0)", M.is_boundary_edge( 2 ) )
-    print ("E (1, 0)", M.is_boundary_edge( 0 ) )   
+    M = get_mesh()
+    #M = Mesh(vertices, faces)
+    
     # M.get_face_edges( (0, 1, 2) )
     show_mesh(M, "test mesh")
     
