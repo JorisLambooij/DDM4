@@ -132,7 +132,7 @@ def DDM_Practical4(context):
     # Construct a mesh with this data
     M = get_mesh()
     
-    show_mesh(M, "Yoooooooooo")
+    show_mesh(M, "test mesh")
     
     # You can now use the accessors to access the mesh data
     #print(M.get_edges())
@@ -249,7 +249,7 @@ def get_mesh():
 def show_mesh(M, name):
     
     me = bpy.data.meshes.new("Mesh")
-    ob = bpy.data.objects.new("mesh", me)
+    ob = bpy.data.objects.new(name, me)
     bpy.context.scene.objects.link(ob)
     
     edges = []
@@ -257,15 +257,15 @@ def show_mesh(M, name):
     verts = []
     
     for tri in M.faces:
-        print(tri[0])
         verts_indices = [0, 0, 0]
         for j in range(3):
             if tri[j] not in verts:
                 verts_indices[j] = len(verts)
-                verts.append(tri[j])
+                verts.append(M.vertices[tri[j]])
             else:
                 verts_indices[j] = verts.index(tri[j])
         faces.append( tuple(verts_indices) )
+    
     
     me.from_pydata(verts, edges, faces)
     
