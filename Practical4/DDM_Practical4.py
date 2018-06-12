@@ -239,7 +239,7 @@ def slice_triplets(triplets, fixed_colums):
 
 # Returns the weights for each edge of mesh M.
 # It therefore consists of a list of real numbers such that the index matches the index of the edge list in M.
-def cotan_weights(M, r):
+def cotan_weights(M):
     
     # TODO: implement yourself
     weights = []
@@ -259,7 +259,7 @@ def cotan_weights(M, r):
     return weights
     
 # Same as above but for uniform weights
-def uniform_weights(M, r):
+def uniform_weights(M):
 
     # TODO: implement yourself
     weights = []
@@ -271,10 +271,26 @@ def uniform_weights(M, r):
     return weights
     
 # Given a set of weights, return M with the uv-coordinates set according to the passed weights
-def Convex_Boundary_Method(M, weights):
+def Convex_Boundary_Method(M, weights, r):
     
-    # TODO: implement yourself
+    boundary_edges = []
+    for edgeIndex in range(len(M.edges)):
+        if M.get_flaps(edgeIndex).length == 1:
+            boundary_edges.append(M.edges[edgeIndex])
     
+    boundary_vertex_indices = []]
+    for edge in boundary_edges:
+        if edge[0] not in boundary_vertex_indices:
+            boundary_vertex_indices.append(edge[0])
+        if edge[1] not in boundary_vertex_indices:
+            boundary_vertex_indices.append(edge[1])
+
+    inner_edge_vertices = M.get_vertices.copy()
+    count = 0
+    for i in range(len(boundary_vertex_indices)):
+        inner_edge_vertices.pop(boundary_vertex_indices[i] - i)
+
+
     return M
 
 # Using Least Squares Conformal Mapping, calculate the uv-coordinates of a given mesh M and return M with those uv-coordinates applied
