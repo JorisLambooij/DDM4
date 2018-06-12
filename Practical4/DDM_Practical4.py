@@ -11,6 +11,7 @@
 
 import ddm
 import bpy
+import math
 from mathutils import Vector
 
 # Place additional imports here
@@ -241,8 +242,21 @@ def slice_triplets(triplets, fixed_colums):
 def cotan_weights(M, r):
     
     # TODO: implement yourself
+    weights = []
+    for edge in M.edges:
+        flaps = M.get_flaps(edge)
+        if flaps.length == 1:
+            weights.append(0.0)
+        else:
+            w = 0.0
+            edges = M.get_edge_vertices[edge]
+            for flap in flaps:
+                for vertex in [n for n in M.get_face_vertices[flap] if n not in edges]:
+                    w += 1 / math.tan((vertex - edges[0]).angle(vertex - edges[1]))
+            w /= 2
+            weights.append(w)
     
-    pass
+    return weights
     
 # Same as above but for uniform weights
 def uniform_weights(M, r):
