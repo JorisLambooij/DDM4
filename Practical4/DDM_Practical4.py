@@ -272,7 +272,16 @@ def uniform_weights(M):
     
 # Given a set of weights, return M with the uv-coordinates set according to the passed weights
 def Convex_Boundary_Method(M, weights, r):
-    
+
+    #Construct d0 sparse matrix
+    #Maybe do this after getting boundary edges so we can split the d0 at construction
+    d0_list = []
+    for e_i in range(len(M.edges)):
+        edge = M.edges[e_i]
+        d0_list.append((e_i, edge[0], -1))
+        d0_list.append((e_i, edge[1], 1))
+    d0 = ddm.Sparse_Matrix(d0_list, len(M.edges), len(M.get_vertices))
+
     boundary_edges = []
     for edgeIndex in range(len(M.edges)):
         if M.get_flaps(edgeIndex).length == 1:
