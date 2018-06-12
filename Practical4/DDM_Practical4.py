@@ -237,13 +237,13 @@ def cotan_weights(M, r):
     
     # TODO: implement yourself
     weights = []
-    for edge in M.edges:
-        flaps = M.get_flaps(edge)
+    for edgeIndex in range(len(M.edges)):
+        flaps = M.get_flaps(edgeIndex)
         if flaps.length == 1:
             weights.append(0.0)
         else:
             w = 0.0
-            edges = M.get_edge_vertices[edge]
+            edges = M.get_edge_vertices[M.edges[edgeIndex]]
             for flap in flaps:
                 for vertex in [n for n in M.get_face_vertices[flap] if n not in edges]:
                     w += 1 / math.tan((vertex - edges[0]).angle(vertex - edges[1]))
@@ -256,8 +256,9 @@ def cotan_weights(M, r):
 def uniform_weights(M, r):
 
     # TODO: implement yourself
+    weights = []
+    for edge in M.edges:
 
-    pass
     
 # Given a set of weights, return M with the uv-coordinates set according to the passed weights
 def Convex_Boundary_Method(M, weights):
