@@ -127,9 +127,12 @@ class Mesh():
     # Returns the length of the given edge with edge_index
     def get_edge_length(self, edge_index):
         
-        # TODO: implement yourself
+        edge = self.edges[edge_index]
         
-        return 0
+        p1 = self.vertices[edge[0]]
+        p2 = self.vertices[edge[1]]
+        e = p1 - p2
+        return (e[0] * e[0] + e[1] * e[1] + e[2] * e[2]) ** 0.5
         
     # Returns whether the edge has two adjacent faces
     def is_boundary_edge(self, edge_index):
@@ -159,11 +162,11 @@ def DDM_Practical4(context):
     faces = [ (0, 1, 2), (0, 2, 3) ]
     
     # Construct a mesh with this data
-    M = get_mesh()
-    #M = Mesh(vertices, faces)
+    #M = get_mesh()
+    M = Mesh(vertices, faces)
     
     # M.get_face_edges( (0, 1, 2) )
-    show_mesh(M, "test mesh")
+    # show_mesh(M, "test mesh")
     
     # You can now use the accessors to access the mesh data
     #print(M.get_edges())
@@ -286,7 +289,6 @@ def show_mesh(M, name):
     edges = []
     faces = []
     verts = []
-    print (M.vertices)
     for tri in M.faces:
         verts_indices = [0, 0, 0]
         for j in range(3):
