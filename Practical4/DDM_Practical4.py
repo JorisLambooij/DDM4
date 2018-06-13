@@ -205,7 +205,8 @@ def DDM_Practical4(context):
     #weights = uniform_weights(M)
 
     convex = Convex_Boundary_Method(M, weights, 5)
-
+    lcsm = LSCM(M)
+    show_mesh(M, "Lcsm")
     show_mesh(convex, "convex")
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
