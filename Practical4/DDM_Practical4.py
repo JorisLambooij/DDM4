@@ -157,57 +157,14 @@ class Mesh():
     
 # This function is called when the DDM operator is selected in Blender.
 def DDM_Practical4(context):
-    
-    # TODO: remove example code and implement Practical 4
-    
-    # Example mesh construction
-    
-    # The vertices are stored as a list of vectors (ordered by index)
-    vertices = [Vector( (0,0,0) ), Vector( (0,1,0) ), Vector( (1,1,0) ), Vector( (1,0,0) )]
-    
-    # The faces are stored as triplets (triangles) of vertex indices, polygons need to be triangulated as in previous practicals. This time edges should also be extracted.
-    faces = [ (0, 1, 2), (0, 2, 3) ]
-    
-    # Construct a mesh with this data
     M = get_mesh()
-    #M = Mesh(vertices, faces)
-    
-    # M.get_face_edges( (0, 1, 2) )
-    # show_mesh(M, "test mesh")
-    
-    # You can now use the accessors to access the mesh data
-    #print(M.get_edges())
-    
-    # An example of the creation of sparse matrices
-    #A = ddm.Sparse_Matrix([(0, 0, 4), (1, 0, 12), (2, 0, -16), (0, 1, 12), (1, 1, 37), (2, 1, -43), (0, 2, -16), (1, 2, -43), (2, 2, 98)], 3, 3)
-    
-    # Sparse matrices can be multiplied and transposed
-    #B = A.transposed() * A
-    #print(B)
-    # Cholesky decomposition on a matrix
-    #print("Cholesky", B.Cholesky())
-    
-    #print(B)
-    # Solving a system with a certain rhs given as a list
-    #rhs = [2, 2, 2]
-    
-    #x = B.solve(rhs);
-    
-    # A solution should yield the rhs when multiplied with B, ( B * x - v should be zero)
-    #print(Vector( B * x ) - Vector(rhs) )
-    
-    # You can drop the matrix back to a python representation using 'flatten'
-    #print(B.flatten())
-    #uni_weights = uniform_weights(M)
-    #LSCM(M)
-
     weights = cotan_weights(M)
     #weights = uniform_weights(M)
 
-    convex = Convex_Boundary_Method(M, weights, 5)
-    lcsm = LSCM(M)
-    show_mesh(M, "Lcsm")
-    show_mesh(convex, "convex")
+    #convex = Convex_Boundary_Method(M, weights, 5)
+    #show_mesh(convex, "convex")
+    lcsm = LSCM(get_mesh())
+    show_mesh(lcsm, "LSCM")
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
     # TODO: show_mesh on a copy of the active mesh with cot UV coordinates, call this mesh "Cot"
@@ -434,10 +391,69 @@ def LSCM(M):
         insertMatrix( (6 * t + 2, 2 * triangle[2], function_per_angle(2) - I) )
         insertMatrix( (6 * t + 4, 2 * triangle[2], I) )
     
-    A = ddm.Sparse_Matrix( A_list, 6 * T, 2 * len(M.get_vertices()) )
-    #A.Cholesky()
-    #rhs = []
-    #x = A.solve(rhs)
+    V = len(M.get_vertices())
+    A = ddm.Sparse_Matrix( A_list, 6 * T, 2 * V )
+    
+    #############################################################################################################
+    #############################################################################################################
+    
+    #find boundary verts and create a dictionary for each vertex which vertices in the boundary it connects to
+    boundary_verts = set()
+    boundary_edges = dict()
+    for edgeIndex in range(len(M.edges)):
+        if len(M.get_flaps(edgeIndex)) == 1:
+            boundary_verts.add(M.edges[edgeIndex][0])
+            boundary_verts.add(M.edges[edgeIndex][1])
+    
+    b = len(boundary_verts)
+    b_verts_sorted = sorted(boundary_verts)
+    columns = [b_verts_sorted[0], b_verts_sorted[math.floor(b / 2)] ]
+    #columns = [b_verts_sorted[0], b_verts_sorted[ math.floor(b / 4) ], b_verts_sorted[ math.floor(b / 2) ], b_verts_sorted[ math.floor(3 * b / 4) ] ]
+    
+    #create d0I and d0B
+    d0B_list, d0I_list = slice_triplets(A_list, columns)
+    d0I_min_list = [(a,b, -c) for (a,b,c) in d0I_list]
+    
+    # create d0 matrices
+    d0B = ddm.Sparse_Matrix(d0B_list, 6 * T, len(columns))
+    d0I = ddm.Sparse_Matrix(d0I_list, 6 * T, 2 * V - len(columns))
+    d0I_neg = ddm.Sparse_Matrix(d0I_min_list, 6 * T, 2 * V - len(columns))
+    
+    uvB = [0, 0, 1, 1]
+    #vB = [0, 1]
+    
+    lhs = d0I.transposed() * d0I
+    rhs = (d0I_neg.transposed() * d0B * uvB)
+    
+    lhs.Cholesky()
+    
+    #solve for uv
+    uvI = lhs.solve(rhs)
+
+    print (uvI)
+    #rhs = (d0I_neg.transposed() * d0B * vB)
+    #solve for v
+    #vI = lhs.solve(rhs)
+    
+    #reunite I and B
+    i_count = 0
+    b_count = 0
+    for i in range(V):
+        if i in columns:
+            if b_count < len(uvB):
+                M.uv_coordinates[i] = Vector((uvB[b_count], uvB[b_count + 1]))
+                b_count += 2
+        else:
+            print (i_count, "/", len(uvI))
+            if i_count < len(uvI):
+                uv_co = Vector((uvI[i_count], uvI[i_count + 1]))
+                M.uv_coordinates[i] = uv_co
+                i_count += 2
+    
+    
+    
+    #############################################################################################################
+    #############################################################################################################
     
     print ("LSCM done!")
     return M
