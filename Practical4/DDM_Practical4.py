@@ -157,12 +157,13 @@ class Mesh():
     
 # This function is called when the DDM operator is selected in Blender.
 def DDM_Practical4(context):
+    print ("Running Practical Assignment 4")
     M = get_mesh()
     weights = cotan_weights(M)
     #weights = uniform_weights(M)
 
-    convex = Convex_Boundary_Method(M, weights, 0.5)
-    show_mesh(convex, "convex")
+    #convex = Convex_Boundary_Method(M, weights, 0.5)
+    #show_mesh(convex, "convex")
     
     lcsm = LSCM(get_mesh())
     show_mesh(lcsm, "LSCM")
@@ -334,8 +335,8 @@ def Convex_Boundary_Method(M, weights, r):
             M.uv_coordinates[i] = Vector((uI[i_count], vI[i_count]))
             i_count += 1
     
-    print(len(M.get_uv_coordinates()))
-    print(len(M.get_vertices()))
+    #print(len(M.get_uv_coordinates()))
+    #print(len(M.get_vertices()))
 
     return M
 
@@ -408,9 +409,11 @@ def LSCM(M):
     
     b = len(boundary_verts)
     b_verts_sorted = sorted(boundary_verts)
-    columns = [b_verts_sorted[0], b_verts_sorted[math.floor(b / 2)] ]
+    first_constraint = b_verts_sorted[0] * 2
+    last_constraint = b_verts_sorted[math.floor(b / 2)] * 2
+    columns = [ first_constraint, first_constraint + 1, last_constraint, last_constraint + 1 ]
     #columns = [b_verts_sorted[0], b_verts_sorted[ math.floor(b / 4) ], b_verts_sorted[ math.floor(b / 2) ], b_verts_sorted[ math.floor(3 * b / 4) ] ]
-    
+
     #create d0I and d0B
     d0B_list, d0I_list = slice_triplets(A_list, columns)
     d0I_min_list = [(a,b, -c) for (a,b,c) in d0I_list]
@@ -425,24 +428,21 @@ def LSCM(M):
     lhs = d0I.transposed() * d0I
     rhs = (d0I_neg.transposed() * d0B * uvB)
     
-    #lhs.Cholesky()
-    
-    #rhs = (d0I_neg.transposed() * d0B * vB)
+    lhs.Cholesky()
+    #solve for uv 
+    uvI = lhs.solve(rhs) 
     
     #reunite I and B
     i_count = 0
     b_count = 0
-    for i in range(0):
+    for i in range(V):
         if i in columns:
-            if b_count < len(uvB):
-                M.uv_coordinates[i] = Vector((uvB[b_count], uvB[b_count + 1]))
-                b_count += 2
+            M.uv_coordinates[i] = Vector((uvB[b_count], uvB[b_count + 1]))
+            b_count += 2
         else:
-            print (i_count, "/", len(uvI))
-            if i_count < len(uvI):
-                uv_co = Vector((uvI[i_count], uvI[i_count + 1]))
-                M.uv_coordinates[i] = uv_co
-                i_count += 2
+            uv_co = Vector((uvI[i_count], uvI[i_count + 1]))
+            M.uv_coordinates[i] = uv_co
+            i_count += 2
     
     #############################################################################################################
     #############################################################################################################
