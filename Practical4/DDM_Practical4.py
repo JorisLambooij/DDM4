@@ -364,8 +364,8 @@ def LSCM(M):
         l_ij = length(triangle[prev], triangle[angle_index])
         l_jk = length(triangle[angle_index], triangle[next])
         angle_ijk = angle(triangle[prev], triangle[angle_index], triangle[next])
-        (sin, cos) = (math.cos(angle_ijk), math.sin(angle_ijk))
-        R = Matrix([ (cos, -sin), (sin, cos) ])
+        (sin, cos) = (math.sin(angle_ijk), math.cos(angle_ijk))
+        R = Matrix([ (cos, sin), (-sin, cos) ])
         M_ijk = (l_ij / l_jk) * R
         return M_ijk
         
@@ -448,17 +448,16 @@ def LSCM(M):
     i_count = 0
     b_count = 0
     for i in range(V):
-        if i in columns:
-            M.uv_coordinates[i] = Vector((uvB[b_count], uvB[b_count + 1]))
-            b_count += 2
-        else:
-            if i_count + 1 < len(uvI):
-                uv_co = Vector((uvI[i_count], uvI[i_count + 1]))
-                M.uv_coordinates[i] = uv_co
-                i_count += 2
+        if (i*2) in columns:
+            if b_count == 0:
+                M.uv_coordinates[i] = Vector((1, 1))
+                b_count += 2
             else:
-                print("Something wrong")
-    
+                M.uv_coordinates[i] = Vector((0, 0))
+        else:
+            uv_co = Vector((uvI[i_count], uvI[i_count + 1]))
+            M.uv_coordinates[i] = uv_co
+            i_count += 2
     #############################################################################################################
     #############################################################################################################
     
