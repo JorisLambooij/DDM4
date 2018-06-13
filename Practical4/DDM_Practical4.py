@@ -161,8 +161,8 @@ class Mesh():
 def DDM_Practical4(context):
     print ("Running Practical Assignment 4")
     M = get_mesh()
-    #weights = cotan_weights(M)
-    weights = uniform_weights(M)
+    weights_cot = cotan_weights(M)
+    weights_uniform = uniform_weights(M)
 
     #convex = Convex_Boundary_Method(M, weights, 0.5)
     #show_mesh(convex, "convex")
@@ -337,9 +337,6 @@ def Convex_Boundary_Method(M, weights, r):
             M.uv_coordinates[i] = Vector((uI[i_count], vI[i_count]))
             i_count += 1
     
-    #print(len(M.get_uv_coordinates()))
-    #print(len(M.get_vertices()))
-
     return M
 
 # Using Least Squares Conformal Mapping, calculate the uv-coordinates of a given mesh M and return M with those uv-coordinates applied
