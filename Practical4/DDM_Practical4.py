@@ -204,9 +204,9 @@ def DDM_Practical4(context):
     weights = cotan_weights(M)
     #weights = uniform_weights(M)
 
-    convex = Convex_Boundary_Method(M, weights, 5)
-    lcsm = LSCM(M)
-    show_mesh(M, "Lcsm")
+    convex = Convex_Boundary_Method(M, weights, 0.5)
+    #lcsm = LSCM(M)
+    #show_mesh(M, "Lcsm")
     show_mesh(convex, "convex")
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
@@ -342,7 +342,7 @@ def Convex_Boundary_Method(M, weights, r):
             target_vert = boundary_edges[source_vert][0]
         length = (M.get_vertex(target_vert) - M.get_vertex(source_vert)).length
         angle = math.pi * 2.0 * length / boundary_length
-        boundary_vertex_to_uv[source_vert] = Vector( (r * math.cos(prev_angle), r * math.sin(prev_angle)) )
+        boundary_vertex_to_uv[source_vert] = Vector( (0.5 + r * math.cos(prev_angle), 0.5 + r * math.sin(prev_angle)) )
         prev_angle += angle
         prev_vert = source_vert
         source_vert = target_vert
@@ -467,18 +467,9 @@ def show_mesh(M, name):
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.objects.link(ob)
     
-    edges = []
-    faces = []
-    verts = []
-    for tri in M.faces:
-        verts_indices = [0, 0, 0]
-        for j in range(3):
-            if tri[j] not in verts:
-                verts_indices[j] = len(verts)
-                verts.append(M.vertices[tri[j]])
-            else:
-                verts_indices[j] = verts.index(tri[j])
-        faces.append( tuple(verts_indices) )
+    edges = M.get_edges()
+    faces = M.get_faces()
+    verts = M.get_vertices()
 
     me.uv_textures.new("uv_test")
     me.from_pydata(verts, edges, faces)
