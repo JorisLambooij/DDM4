@@ -204,6 +204,8 @@ def DDM_Practical4(context):
     weights = cotan_weights(M)
 
     convex = Convex_Boundary_Method(M, weights, 5)
+
+    show_mesh(convex, "mask")
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
     # TODO: show_mesh on a copy of the active mesh with cot UV coordinates, call this mesh "Cot"
@@ -475,7 +477,8 @@ def show_mesh(M, name):
                 verts_indices[j] = verts.index(tri[j])
         faces.append( tuple(verts_indices) )
     
-    
+    me.uv_textures.new("uv_test")
+    me.uv_layers[-1].data.foreach_set("uv", [uv for pair in [M.get_uv_coordinates()[l.vertex_index] for l in me.loops] for uv in pair])
     me.from_pydata(verts, edges, faces)
     
     return
