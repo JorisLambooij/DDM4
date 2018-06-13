@@ -161,10 +161,12 @@ def DDM_Practical4(context):
     weights = cotan_weights(M)
     #weights = uniform_weights(M)
 
-    #convex = Convex_Boundary_Method(M, weights, 5)
-    #show_mesh(convex, "convex")
+    convex = Convex_Boundary_Method(M, weights, 0.5)
+    show_mesh(convex, "convex")
+    
     lcsm = LSCM(get_mesh())
     show_mesh(lcsm, "LSCM")
+    
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
     # TODO: show_mesh on a copy of the active mesh with cot UV coordinates, call this mesh "Cot"
@@ -392,7 +394,7 @@ def LSCM(M):
         insertMatrix( (6 * t + 4, 2 * triangle[2], I) )
     
     V = len(M.get_vertices())
-    A = ddm.Sparse_Matrix( A_list, 6 * T, 2 * V )
+    #A = ddm.Sparse_Matrix( A_list, 6 * T, 2 * V )
     
     #############################################################################################################
     #############################################################################################################
@@ -425,12 +427,12 @@ def LSCM(M):
     lhs = d0I.transposed() * d0I
     rhs = (d0I_neg.transposed() * d0B * uvB)
     
-    lhs.Cholesky()
+    #lhs.Cholesky()
     
     #solve for uv
-    uvI = lhs.solve(rhs)
+    #uvI = lhs.solve(rhs)
 
-    print (uvI)
+    #print (uvI)
     #rhs = (d0I_neg.transposed() * d0B * vB)
     #solve for v
     #vI = lhs.solve(rhs)
@@ -438,7 +440,7 @@ def LSCM(M):
     #reunite I and B
     i_count = 0
     b_count = 0
-    for i in range(V):
+    for i in range(0):
         if i in columns:
             if b_count < len(uvB):
                 M.uv_coordinates[i] = Vector((uvB[b_count], uvB[b_count + 1]))
