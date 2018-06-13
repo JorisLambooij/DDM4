@@ -12,7 +12,7 @@
 import ddm
 import bpy
 import math
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 # Place additional imports here
 
@@ -198,7 +198,7 @@ def DDM_Practical4(context):
     # You can drop the matrix back to a python representation using 'flatten'
     #print(B.flatten())
     uni_weights = uniform_weights(M)
-    show_mesh(Convex_Boundary_Method(M, uni_weights), "Uniform")
+    LSCM(M)
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
     # TODO: show_mesh on a copy of the active mesh with cot UV coordinates, call this mesh "Cot"
@@ -301,13 +301,58 @@ def Convex_Boundary_Method(M, weights):
         inner_edge_vertices.pop(boundary_vertex_indices[i] - i)
 
 
-    return Mesh(inner_edge_vertices, [])
+    return M
 
 # Using Least Squares Conformal Mapping, calculate the uv-coordinates of a given mesh M and return M with those uv-coordinates applied
 def LSCM(M):
-
+    def length(i1, i2):
+        e = M.vertices[i1] - M.vertices[i2]
+        return (e[0] * e[0] + e[1] * e[1] + e[2] * e[2]) ** 0.5
+    def angle(i1, i2, i3):
+        e1 = M.vertices[i1] - M.vertices[i2]
+        e2 = M.vertices[i3] - M.vertices[i2]
+        cos = e1 * e2 / (length(i2, i1) * length(i3, i2))
+        return math.acos(cos)
+        
+    def function_per_angle(angle_index):
+        prev = angle_index - 1
+        nex  = angle_index + 1
+        if next == 3:
+            next = 0
+        if prev == -1:
+            prev = 2
+        l_ij = length(triangle[prev], triangle[angle_index])
+        l_jk = length(triangle[angle_index], triangle[next])
+        angle_ijk = angle(triangle[prev], triangle[angle_index], triangle[next])
+        (sin, cos) = (math.cos(angle_ijk), math.sin(angle_ijk))
+        R = Matrix([ (cos, sin), (-sin, cos) ])
+        M_ijk = l_ij / l_jk * R
+        return M_ijk
+        
+    #A = ddm.Sparse_Matrix([(0, 0, 4), (1, 0, 12), (2, 0, -16), (0, 1, 12), (1, 1, 37), (2, 1, -43), (0, 2, -16), (1, 2, -43), (2, 2, 98)], 3, 3)
+    A_list = []
+    
+    I = Matrix([ (1, 0), (0, 1) ])
+    
+    T = len(M.get_faces())
+    for t in range(T):
+        triangle = M.get_faces()[t]
+        
+        A_list.append( (6 * t + 0, 2, I) )
+        A_list.append( (6 * t + 1, 2, -function_per_angle(2)) )
+        A_list.append( (6 * t + 2, 2, function_per_angle(0) - I) )
+        
+        A_list.append( (6 * t + 0, 4, function_per_angle(1) - I )
+        A_list.append( (6 * t + 1, 4, I) )
+        A_list.append( (6 * t + 2, 4, -function_per_angle(0)) )
+        
+        A_list.append( (6 * t + 0, 6, -function_per_angle(1)) )
+        A_list.append( (6 * t + 1, 6, function_per_angle(2) - I) )
+        A_list.append( (6 * t + 2, 6, I) )
+        
+    A = ddm.Sparse_Matrix( A_list, 6 * T, 2 * len( M.get_vertices() ) )
     # TODO: implement yourself
-
+    print ("LSCM done")
     return M
     
 # Builds a Mesh class object from the active object in the scene.
