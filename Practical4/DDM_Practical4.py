@@ -394,12 +394,11 @@ def LSCM(M):
         insertMatrix( (6 * t + 4, 2 * triangle[2], I) )
     
     V = len(M.get_vertices())
-    #A = ddm.Sparse_Matrix( A_list, 6 * T, 2 * V )
     
     #############################################################################################################
     #############################################################################################################
     
-    #find boundary verts and create a dictionary for each vertex which vertices in the boundary it connects to
+    #find boundary verts
     boundary_verts = set()
     boundary_edges = dict()
     for edgeIndex in range(len(M.edges)):
@@ -422,20 +421,13 @@ def LSCM(M):
     d0I_neg = ddm.Sparse_Matrix(d0I_min_list, 6 * T, 2 * V - len(columns))
     
     uvB = [0, 0, 1, 1]
-    #vB = [0, 1]
     
     lhs = d0I.transposed() * d0I
     rhs = (d0I_neg.transposed() * d0B * uvB)
     
     #lhs.Cholesky()
     
-    #solve for uv
-    #uvI = lhs.solve(rhs)
-
-    #print (uvI)
     #rhs = (d0I_neg.transposed() * d0B * vB)
-    #solve for v
-    #vI = lhs.solve(rhs)
     
     #reunite I and B
     i_count = 0
@@ -451,8 +443,6 @@ def LSCM(M):
                 uv_co = Vector((uvI[i_count], uvI[i_count + 1]))
                 M.uv_coordinates[i] = uv_co
                 i_count += 2
-    
-    
     
     #############################################################################################################
     #############################################################################################################
