@@ -183,10 +183,11 @@ def DDM_Practical4(context):
     
     # Sparse matrices can be multiplied and transposed
     B = A.transposed() * A
-    
+    print(B)
     # Cholesky decomposition on a matrix
-    B.Cholesky()
+    print("Cholesky", B.Cholesky())
     
+    print(B)
     # Solving a system with a certain rhs given as a list
     rhs = [2, 2, 2]
     
@@ -316,7 +317,7 @@ def LSCM(M):
         
     def function_per_angle(angle_index):
         prev = angle_index - 1
-        nex  = angle_index + 1
+        next  = angle_index + 1
         if next == 3:
             next = 0
         if prev == -1:
@@ -328,9 +329,18 @@ def LSCM(M):
         R = Matrix([ (cos, sin), (-sin, cos) ])
         M_ijk = l_ij / l_jk * R
         return M_ijk
-        
+    
+    A_list = [] 
+    def insertMatrix(params):
+        #(x, y) = topleft pivot
+        (x, y, matrix) = params
+        A_list.append( (x + 0, y + 0, matrix[0][0]) )
+        A_list.append( (x + 0, y + 1, matrix[0][1]) )
+        A_list.append( (x + 1, y + 0, matrix[1][0]) )
+        A_list.append( (x + 1, y + 1, matrix[1][1]) )
+        return
     #A = ddm.Sparse_Matrix([(0, 0, 4), (1, 0, 12), (2, 0, -16), (0, 1, 12), (1, 1, 37), (2, 1, -43), (0, 2, -16), (1, 2, -43), (2, 2, 98)], 3, 3)
-    A_list = []
+    
     
     I = Matrix([ (1, 0), (0, 1) ])
     
@@ -338,20 +348,19 @@ def LSCM(M):
     for t in range(T):
         triangle = M.get_faces()[t]
         
-        A_list.append( (6 * t + 0, 2, I) )
-        A_list.append( (6 * t + 1, 2, -function_per_angle(2)) )
-        A_list.append( (6 * t + 2, 2, function_per_angle(0) - I) )
+        insertMatrix( (2 * triangle[0], 6 * t + 0, I) )
+        insertMatrix( (2 * triangle[0], 6 * t + 2, -1 * function_per_angle(2)) )
+        insertMatrix( (2 * triangle[0], 6 * t + 4, function_per_angle(0) - I) )
         
-        A_list.append( (6 * t + 0, 4, function_per_angle(1) - I )
-        A_list.append( (6 * t + 1, 4, I) )
-        A_list.append( (6 * t + 2, 4, -function_per_angle(0)) )
+        insertMatrix( (2 * triangle[1], 6 * t + 0, function_per_angle(1) - I) )
+        insertMatrix( (2 * triangle[1], 6 * t + 2, I) )
+        insertMatrix( (2 * triangle[1], 6 * t + 4, -1 * function_per_angle(0)) )
         
-        A_list.append( (6 * t + 0, 6, -function_per_angle(1)) )
-        A_list.append( (6 * t + 1, 6, function_per_angle(2) - I) )
-        A_list.append( (6 * t + 2, 6, I) )
-        
-    A = ddm.Sparse_Matrix( A_list, 6 * T, 2 * len( M.get_vertices() ) )
+        insertMatrix( (2 * triangle[2], 6 * t + 0, -1 * function_per_angle(1)) )
+        insertMatrix( (2 * triangle[2], 6 * t + 2, function_per_angle(2) - I) )
+        insertMatrix( (2 * triangle[2], 6 * t + 4, I) )
     
+    A = ddm.Sparse_Matrix( A_list, 6 * T, 2 * len(M.get_vertices()) )
     
     
     print ("LSCM done")
