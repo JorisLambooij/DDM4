@@ -351,7 +351,9 @@ def LSCM(M):
         A_list.append( (6 * t + 2, 6, I) )
         
     A = ddm.Sparse_Matrix( A_list, 6 * T, 2 * len( M.get_vertices() ) )
-    # TODO: implement yourself
+    
+    
+    
     print ("LSCM done")
     return M
     
