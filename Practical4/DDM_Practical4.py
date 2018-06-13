@@ -202,10 +202,11 @@ def DDM_Practical4(context):
     #LSCM(M)
 
     weights = cotan_weights(M)
+    #weights = uniform_weights(M)
 
     convex = Convex_Boundary_Method(M, weights, 5)
 
-    show_mesh(convex, "mask")
+    show_mesh(convex, "convex")
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
     # TODO: show_mesh on a copy of the active mesh with cot UV coordinates, call this mesh "Cot"
@@ -281,6 +282,7 @@ def uniform_weights(M):
 # Given a set of weights, return M with the uv-coordinates set according to the passed weights
 def Convex_Boundary_Method(M, weights, r):
     #Construct the sparse diagonal matrix of weights
+    print(len(weights))
     for w_i in range(len(weights)):
         weights[w_i] = (w_i, w_i, weights[w_i])
     W = ddm.Sparse_Matrix(weights, len(weights), len(weights))
@@ -362,7 +364,6 @@ def Convex_Boundary_Method(M, weights, r):
     rhs = (d0I_neg.transposed() * W * d0B * vB)
     #solved for v
     vI = lhs.solve(rhs)
-
     i_count = 0
     b_count = 0
     for i in range(len(M.get_vertices())):
@@ -372,6 +373,9 @@ def Convex_Boundary_Method(M, weights, r):
         else:
             M.uv_coordinates[i] = Vector((uI[i_count], vI[i_count]))
             i_count += 1
+    
+    print(len(M.get_uv_coordinates()))
+    print(len(M.get_vertices()))
 
     return M
 
@@ -474,11 +478,20 @@ def show_mesh(M, name):
             else:
                 verts_indices[j] = verts.index(tri[j])
         faces.append( tuple(verts_indices) )
-    
+
     me.uv_textures.new("uv_test")
-    me.uv_layers[-1].data.foreach_set("uv", [uv for pair in [M.get_uv_coordinates()[l.vertex_index] for l in me.loops] for uv in pair])
     me.from_pydata(verts, edges, faces)
-    
+
+    vert_uvs = [vec.to_tuple() for vec in M.get_uv_coordinates()]
+
+    uv_layer = me.uv_layers[-1].data
+    vert_loops = {}
+    for l in me.loops:
+        vert_loops.setdefault(l.vertex_index, []).append(l.index)
+    for i, coord in enumerate(vert_uvs):
+    # For every loop of a vertex
+        for li in vert_loops[i]:
+            uv_layer[li].uv = coord
     return
     
     pass
