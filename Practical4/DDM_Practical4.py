@@ -160,13 +160,16 @@ class Mesh():
 # This function is called when the DDM operator is selected in Blender.
 def DDM_Practical4(context):
     M = get_mesh()
-    #weights = cotan_weights(M)
-    weights = uniform_weights(M)
+    weights_cot = cotan_weights(M)
+    weights_uniform = uniform_weights(M)
 
-    convex = Convex_Boundary_Method(M, weights, 0.5)
-    show_mesh(convex, "convex")
-    
+    convex = Convex_Boundary_Method(M, weights_cot, 0.5)
+    uniform = Convex_Boundary_Method(get_mesh(), weights_uniform, 0.5)
+
     #lcsm = LSCM(get_mesh())
+
+    show_mesh(convex, "convex")
+    show_mesh(uniform, "uniform")
     #show_mesh(lcsm, "LSCM")
     
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
