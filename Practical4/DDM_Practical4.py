@@ -140,7 +140,7 @@ class Mesh():
     # Returns whether the edge has two adjacent faces
     def is_boundary_edge(self, edge_index):
         flap = self.get_flaps(edge_index)
-        return len(flap) == 2
+        return len(flap) == 1
     
     # Returns the boundary of the mesh by returning the indices of the edges (from the internal edge list) that lie around the boundary.
     def boundary_edges(self):
@@ -160,14 +160,14 @@ class Mesh():
 # This function is called when the DDM operator is selected in Blender.
 def DDM_Practical4(context):
     M = get_mesh()
-    weights = cotan_weights(M)
-    #weights = uniform_weights(M)
+    #weights = cotan_weights(M)
+    weights = uniform_weights(M)
 
     convex = Convex_Boundary_Method(M, weights, 0.5)
     show_mesh(convex, "convex")
     
-    lcsm = LSCM(get_mesh())
-    show_mesh(lcsm, "LSCM")
+    #lcsm = LSCM(get_mesh())
+    #show_mesh(lcsm, "LSCM")
     
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
@@ -235,7 +235,7 @@ def uniform_weights(M):
     # TODO: implement yourself
     weights = []
     for edgeIndex in range(len(M.edges)):
-        if M.is_boundary_edge(edgeIndex) == 1:
+        if M.is_boundary_edge(edgeIndex):
             weights.append(0)
         else:
             weights.append(1)
