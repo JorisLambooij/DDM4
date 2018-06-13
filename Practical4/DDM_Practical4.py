@@ -161,8 +161,8 @@ class Mesh():
 def DDM_Practical4(context):
     print ("Running Practical Assignment 4")
     M = get_mesh()
-    weights_cot = cotan_weights(M)
-    weights_uniform = uniform_weights(M)
+    #weights = cotan_weights(M)
+    weights = uniform_weights(M)
 
     #convex = Convex_Boundary_Method(M, weights, 0.5)
     #show_mesh(convex, "convex")
@@ -337,6 +337,9 @@ def Convex_Boundary_Method(M, weights, r):
             M.uv_coordinates[i] = Vector((uI[i_count], vI[i_count]))
             i_count += 1
     
+    #print(len(M.get_uv_coordinates()))
+    #print(len(M.get_vertices()))
+
     return M
 
 # Using Least Squares Conformal Mapping, calculate the uv-coordinates of a given mesh M and return M with those uv-coordinates applied
@@ -348,7 +351,7 @@ def LSCM(M):
     def angle(i1, i2, i3):
         e1 = M.vertices[i1] - M.vertices[i2]
         e2 = M.vertices[i3] - M.vertices[i2]
-        cos = e1 * e2 / (length(i2, i1) * length(i3, i2))
+        cos = (e1 * e2) / (length(i2, i1) * length(i3, i2))
         return math.acos(cos)
         
     def function_per_angle(angle_index, triangle):
@@ -362,8 +365,8 @@ def LSCM(M):
         l_jk = length(triangle[angle_index], triangle[next])
         angle_ijk = angle(triangle[prev], triangle[angle_index], triangle[next])
         (sin, cos) = (math.cos(angle_ijk), math.sin(angle_ijk))
-        R = Matrix([ (cos, sin), (-sin, cos) ])
-        M_ijk = l_ij / l_jk * R
+        R = Matrix([ (cos, -sin), (sin, cos) ])
+        M_ijk = (l_ij / l_jk) * R
         return M_ijk
         
     A_list = [] 
@@ -402,7 +405,7 @@ def LSCM(M):
     boundary_verts = set()
     boundary_edges = set()
     for edgeIndex in range(len(M.edges)):
-        if M.is_boundary_edge(edgeIndex):
+        if len(M.get_flaps(edgeIndex)) == 1:
             boundary_verts.add(M.edges[edgeIndex][0])
             boundary_verts.add(M.edges[edgeIndex][1])
             boundary_edges.add(edgeIndex)
@@ -419,9 +422,9 @@ def LSCM(M):
     
     last_constraint = b_verts_sorted[ math.floor(len(b_verts_sorted) / 2)]
     columns = [ first_constraint * 2, first_constraint * 2 + 1, last_constraint * 2, last_constraint * 2 + 1 ]
+    #columns = [88, 89, 376, 377]
     print (columns)
-    print (M.vertices[math.floor(first_constraint / 2)], M.vertices[math.floor(last_constraint / 2)])
-    #columns = [b_verts_sorted[0], b_verts_sorted[ math.floor(b / 4) ], b_verts_sorted[ math.floor(b / 2) ], b_verts_sorted[ math.floor(3 * b / 4) ] ]
+    print (M.vertices[math.floor(columns[0] / 2)], M.vertices[math.floor(columns[2] / 2)])
 
     #create d0I and d0B
     d0B_list, d0I_list = slice_triplets(A_list, columns)
@@ -439,7 +442,8 @@ def LSCM(M):
     
     lhs.Cholesky()
     #solve for uv 
-    uvI = lhs.solve(rhs) 
+    uvI = lhs.solve(rhs)
+    
     #reunite I and B
     i_count = 0
     b_count = 0
@@ -452,6 +456,8 @@ def LSCM(M):
                 uv_co = Vector((uvI[i_count], uvI[i_count + 1]))
                 M.uv_coordinates[i] = uv_co
                 i_count += 2
+            else:
+                print("Something wrong")
     
     #############################################################################################################
     #############################################################################################################
