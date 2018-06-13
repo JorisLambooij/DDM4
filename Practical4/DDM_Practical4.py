@@ -41,6 +41,7 @@ class Mesh():
     def build_edge_list(self):
     
         self.edges = []
+        edge_set = set()
         for triangle in self.faces:
             for i in range(3):
                 j = i + 1
@@ -48,8 +49,9 @@ class Mesh():
                     j = 0
                 edge = (triangle[i], triangle[j])
                 edge_r = (triangle[j], triangle[i])
-                if edge not in self.edges and edge_r not in self.edges:
+                if edge not in edge_set and edge_r not in edge_set:
                     self.edges.append( edge )
+                    edge_set.add(edge)
         
     # ACCESSORS
     
