@@ -167,8 +167,8 @@ def DDM_Practical4(context):
     #convex = Convex_Boundary_Method(M, weights, 0.5)
     #show_mesh(convex, "convex")
     
-    #lcsm = LSCM(get_mesh())
-    #show_mesh(lcsm, "LSCM")
+    lcsm = LSCM(get_mesh())
+    show_mesh(lcsm, "LSCM")
     
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
@@ -354,7 +354,7 @@ def LSCM(M):
         cos = e1 * e2 / (length(i2, i1) * length(i3, i2))
         return math.acos(cos)
         
-    def function_per_angle(angle_index):
+    def function_per_angle(angle_index, triangle):
         prev = angle_index - 1
         next  = angle_index + 1
         if next == 3:
@@ -385,15 +385,15 @@ def LSCM(M):
         triangle = M.get_faces()[t]
         
         insertMatrix( (6 * t + 0, 2 * triangle[0], I) )
-        insertMatrix( (6 * t + 2, 2 * triangle[0], -1 * function_per_angle(2)) )
-        insertMatrix( (6 * t + 4, 2 * triangle[0], function_per_angle(0) - I) )
+        insertMatrix( (6 * t + 2, 2 * triangle[0], -1 * function_per_angle(2, triangle)) )
+        insertMatrix( (6 * t + 4, 2 * triangle[0], function_per_angle(0, triangle) - I) )
         
-        insertMatrix( (6 * t + 0, 2 * triangle[1], function_per_angle(1) - I) )
+        insertMatrix( (6 * t + 0, 2 * triangle[1], function_per_angle(1, triangle) - I) )
         insertMatrix( (6 * t + 2, 2 * triangle[1], I) )
-        insertMatrix( (6 * t + 4, 2 * triangle[1], -1 * function_per_angle(0)) )
+        insertMatrix( (6 * t + 4, 2 * triangle[1], -1 * function_per_angle(0, triangle)) )
         
-        insertMatrix( (6 * t + 0, 2 * triangle[2], -1 * function_per_angle(1)) )
-        insertMatrix( (6 * t + 2, 2 * triangle[2], function_per_angle(2) - I) )
+        insertMatrix( (6 * t + 0, 2 * triangle[2], -1 * function_per_angle(1, triangle)) )
+        insertMatrix( (6 * t + 2, 2 * triangle[2], function_per_angle(2, triangle) - I) )
         insertMatrix( (6 * t + 4, 2 * triangle[2], I) )
     
     V = len(M.get_vertices())
@@ -403,17 +403,27 @@ def LSCM(M):
     
     #find boundary verts
     boundary_verts = set()
-    boundary_edges = dict()
+    boundary_edges = set()
     for edgeIndex in range(len(M.edges)):
-        if len(M.get_flaps(edgeIndex)) == 1:
+        if M.is_boundary_edge(edgeIndex):
             boundary_verts.add(M.edges[edgeIndex][0])
             boundary_verts.add(M.edges[edgeIndex][1])
+            boundary_edges.add(edgeIndex)
     
-    b = len(boundary_verts)
-    b_verts_sorted = sorted(boundary_verts)
-    first_constraint = b_verts_sorted[0] * 2
-    last_constraint = b_verts_sorted[math.floor(b / 2)] * 2
-    columns = [ first_constraint, first_constraint + 1, last_constraint, last_constraint + 1 ]
+    first_constraint = list(boundary_verts)[0]
+    b_verts_sorted = [first_constraint]
+    
+    for i in range(len(boundary_edges)):
+        for edge in boundary_edges:
+            if b_verts_sorted[len(b_verts_sorted) - 1] == M.edges[edge][0]:
+                b_verts_sorted.append(M.edges[edge][1])
+            elif b_verts_sorted[len(b_verts_sorted) - 1] == M.edges[edge][1]:
+                b_verts_sorted.append(M.edges[edge][1])
+    
+    last_constraint = b_verts_sorted[ math.floor(len(b_verts_sorted) / 2)]
+    columns = [ first_constraint * 2, first_constraint * 2 + 1, last_constraint * 2, last_constraint * 2 + 1 ]
+    print (columns)
+    print (M.vertices[math.floor(first_constraint / 2)], M.vertices[math.floor(last_constraint / 2)])
     #columns = [b_verts_sorted[0], b_verts_sorted[ math.floor(b / 4) ], b_verts_sorted[ math.floor(b / 2) ], b_verts_sorted[ math.floor(3 * b / 4) ] ]
 
     #create d0I and d0B
@@ -433,7 +443,6 @@ def LSCM(M):
     lhs.Cholesky()
     #solve for uv 
     uvI = lhs.solve(rhs) 
-    
     #reunite I and B
     i_count = 0
     b_count = 0
@@ -442,9 +451,10 @@ def LSCM(M):
             M.uv_coordinates[i] = Vector((uvB[b_count], uvB[b_count + 1]))
             b_count += 2
         else:
-            uv_co = Vector((uvI[i_count], uvI[i_count + 1]))
-            M.uv_coordinates[i] = uv_co
-            i_count += 2
+            if i_count + 1 < len(uvI):
+                uv_co = Vector((uvI[i_count], uvI[i_count + 1]))
+                M.uv_coordinates[i] = uv_co
+                i_count += 2
     
     #############################################################################################################
     #############################################################################################################
