@@ -419,22 +419,24 @@ def LSCM(M):
     for t in range(T):
         triangle = M.get_faces()[t]
         
-        insertMatrix( (2 * triangle[0], 6 * t + 0, I) )
-        insertMatrix( (2 * triangle[0], 6 * t + 2, -1 * function_per_angle(2)) )
-        insertMatrix( (2 * triangle[0], 6 * t + 4, function_per_angle(0) - I) )
+        insertMatrix( (6 * t + 0, 2 * triangle[0], I) )
+        insertMatrix( (6 * t + 2, 2 * triangle[0], -1 * function_per_angle(2)) )
+        insertMatrix( (6 * t + 4, 2 * triangle[0], function_per_angle(0) - I) )
         
-        insertMatrix( (2 * triangle[1], 6 * t + 0, function_per_angle(1) - I) )
-        insertMatrix( (2 * triangle[1], 6 * t + 2, I) )
-        insertMatrix( (2 * triangle[1], 6 * t + 4, -1 * function_per_angle(0)) )
+        insertMatrix( (6 * t + 0, 2 * triangle[1], function_per_angle(1) - I) )
+        insertMatrix( (6 * t + 2, 2 * triangle[1], I) )
+        insertMatrix( (6 * t + 4, 2 * triangle[1], -1 * function_per_angle(0)) )
         
-        insertMatrix( (2 * triangle[2], 6 * t + 0, -1 * function_per_angle(1)) )
-        insertMatrix( (2 * triangle[2], 6 * t + 2, function_per_angle(2) - I) )
-        insertMatrix( (2 * triangle[2], 6 * t + 4, I) )
+        insertMatrix( (6 * t + 0, 2 * triangle[2], -1 * function_per_angle(1)) )
+        insertMatrix( (6 * t + 2, 2 * triangle[2], function_per_angle(2) - I) )
+        insertMatrix( (6 * t + 4, 2 * triangle[2], I) )
     
     A = ddm.Sparse_Matrix( A_list, 6 * T, 2 * len(M.get_vertices()) )
+    #A.Cholesky()
+    #rhs = []
+    #x = A.solve(rhs)
     
-    
-    print ("LSCM done")
+    print ("LSCM done!")
     return M
     
 # Builds a Mesh class object from the active object in the scene.
