@@ -169,8 +169,8 @@ def DDM_Practical4(context):
     faces = [ (0, 1, 2), (0, 2, 3) ]
     
     # Construct a mesh with this data
-    #M = get_mesh()
-    M = Mesh(vertices, faces)
+    M = get_mesh()
+    #M = Mesh(vertices, faces)
     
     # M.get_face_edges( (0, 1, 2) )
     # show_mesh(M, "test mesh")
@@ -197,7 +197,8 @@ def DDM_Practical4(context):
     
     # You can drop the matrix back to a python representation using 'flatten'
     #print(B.flatten())
-    
+    uni_weights = uniform_weights(M)
+    show_mesh(Convex_Boundary_Method(M, uni_weights), "Uniform")
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
     # TODO: show_mesh on a copy of the active mesh with cot UV coordinates, call this mesh "Cot"
@@ -245,7 +246,7 @@ def cotan_weights(M):
     weights = []
     for edgeIndex in range(len(M.edges)):
         flaps = M.get_flaps(edgeIndex)
-        if flaps.length == 1:
+        if len(flaps) == 1:
             weights.append(0.0)
         else:
             w = 0.0
@@ -264,14 +265,14 @@ def uniform_weights(M):
     # TODO: implement yourself
     weights = []
     for edgeIndex in range(len(M.edges)):
-        if M.get_flaps(edgeIndex).length == 1:
+        if M.is_boundary_edge(edgeIndex) == 1:
             weights.append(0)
         else:
             weights.append(1)
     return weights
     
 # Given a set of weights, return M with the uv-coordinates set according to the passed weights
-def Convex_Boundary_Method(M, weights, r):
+def Convex_Boundary_Method(M, weights):
 
     #Construct d0 sparse matrix
     #Maybe do this after getting boundary edges so we can split the d0 at construction
@@ -280,27 +281,27 @@ def Convex_Boundary_Method(M, weights, r):
         edge = M.edges[e_i]
         d0_list.append((e_i, edge[0], -1))
         d0_list.append((e_i, edge[1], 1))
-    d0 = ddm.Sparse_Matrix(d0_list, len(M.edges), len(M.get_vertices))
+    d0 = ddm.Sparse_Matrix(d0_list, len(M.edges), len(M.get_vertices()))
 
     boundary_edges = []
     for edgeIndex in range(len(M.edges)):
-        if M.get_flaps(edgeIndex).length == 1:
+        if M.is_boundary_edge(edgeIndex):
             boundary_edges.append(M.edges[edgeIndex])
     
-    boundary_vertex_indices = []]
+    boundary_vertex_indices = []
     for edge in boundary_edges:
         if edge[0] not in boundary_vertex_indices:
             boundary_vertex_indices.append(edge[0])
         if edge[1] not in boundary_vertex_indices:
             boundary_vertex_indices.append(edge[1])
 
-    inner_edge_vertices = M.get_vertices.copy()
+    inner_edge_vertices = M.get_vertices().copy()
     count = 0
     for i in range(len(boundary_vertex_indices)):
         inner_edge_vertices.pop(boundary_vertex_indices[i] - i)
 
 
-    return M
+    return Mesh(inner_edge_vertices, [])
 
 # Using Least Squares Conformal Mapping, calculate the uv-coordinates of a given mesh M and return M with those uv-coordinates applied
 def LSCM(M):
