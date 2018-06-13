@@ -179,28 +179,31 @@ def DDM_Practical4(context):
     #print(M.get_edges())
     
     # An example of the creation of sparse matrices
-    A = ddm.Sparse_Matrix([(0, 0, 4), (1, 0, 12), (2, 0, -16), (0, 1, 12), (1, 1, 37), (2, 1, -43), (0, 2, -16), (1, 2, -43), (2, 2, 98)], 3, 3)
+    #A = ddm.Sparse_Matrix([(0, 0, 4), (1, 0, 12), (2, 0, -16), (0, 1, 12), (1, 1, 37), (2, 1, -43), (0, 2, -16), (1, 2, -43), (2, 2, 98)], 3, 3)
     
     # Sparse matrices can be multiplied and transposed
-    B = A.transposed() * A
-    print(B)
+    #B = A.transposed() * A
+    #print(B)
     # Cholesky decomposition on a matrix
-    print("Cholesky", B.Cholesky())
+    #print("Cholesky", B.Cholesky())
     
-    print(B)
+    #print(B)
     # Solving a system with a certain rhs given as a list
-    rhs = [2, 2, 2]
+    #rhs = [2, 2, 2]
     
-    x = B.solve(rhs);
+    #x = B.solve(rhs);
     
     # A solution should yield the rhs when multiplied with B, ( B * x - v should be zero)
     #print(Vector( B * x ) - Vector(rhs) )
     
     # You can drop the matrix back to a python representation using 'flatten'
     #print(B.flatten())
-    uni_weights = uniform_weights(M)
-    LSCM(M)
-    show_mesh(M, "Cholesky")
+    #uni_weights = uniform_weights(M)
+    #LSCM(M)
+
+    weights = cotan_weights(M)
+
+    convex = Convex_Boundary_Method(M, weights, 5)
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
     # TODO: show_mesh on a copy of the active mesh with cot UV coordinates, call this mesh "Cot"
@@ -252,9 +255,9 @@ def cotan_weights(M):
             weights.append(0.0)
         else:
             w = 0.0
-            edges = M.get_edge_vertices[M.edges[edgeIndex]]
+            edges = M.get_edge_vertices(M.edges[edgeIndex])
             for flap in flaps:
-                for vertex in [n for n in M.get_face_vertices[flap] if n not in edges]:
+                for vertex in [n for n in M.get_face_vertices(flap) if n not in edges]:
                     w += 1 / math.tan((vertex - edges[0]).angle(vertex - edges[1]))
             w /= 2
             weights.append(w)
@@ -274,34 +277,99 @@ def uniform_weights(M):
     return weights
     
 # Given a set of weights, return M with the uv-coordinates set according to the passed weights
-def Convex_Boundary_Method(M, weights):
+def Convex_Boundary_Method(M, weights, r):
+    #Construct the sparse diagonal matrix of weights
+    for w_i in range(len(weights)):
+        weights[w_i] = (w_i, w_i, weights[w_i])
+    W = ddm.Sparse_Matrix(weights, len(weights), len(weights))
+
+    #find boundary verts and create a dictionary for each vertex which vertices in the boundary it connects to
+    boundary_length = 0.0
+    boundary_verts = set()
+    boundary_edges = dict()
+    for edgeIndex in range(len(M.edges)):
+        if len(M.get_flaps(edgeIndex)) == 1:
+            if(M.edges[edgeIndex][0] in boundary_edges):
+                boundary_edges[M.edges[edgeIndex][0]].append(M.edges[edgeIndex][1])
+            else:
+                boundary_edges[M.edges[edgeIndex][0]] = [M.edges[edgeIndex][1]]
+            if(M.edges[edgeIndex][1] in boundary_edges):
+                boundary_edges[M.edges[edgeIndex][1]].append(M.edges[edgeIndex][0])
+            else:
+                boundary_edges[M.edges[edgeIndex][1]] = [M.edges[edgeIndex][0]]
+            boundary_length += (M.get_vertex(M.edges[edgeIndex][0]) - M.get_vertex(M.edges[edgeIndex][1])).length
+            boundary_verts.add(M.edges[edgeIndex][0])
+            boundary_verts.add(M.edges[edgeIndex][1])
 
     #Construct d0 sparse matrix
-    #Maybe do this after getting boundary edges so we can split the d0 at construction
     d0_list = []
     for e_i in range(len(M.edges)):
-        edge = M.edges[e_i]
-        d0_list.append((e_i, edge[0], -1))
-        d0_list.append((e_i, edge[1], 1))
-    d0 = ddm.Sparse_Matrix(d0_list, len(M.edges), len(M.get_vertices()))
+        d0_list.append( (e_i, M.edges[e_i][0], -1) )
+        d0_list.append( (e_i, M.edges[e_i][1], 1) )
 
-    boundary_edges = []
-    for edgeIndex in range(len(M.edges)):
-        if M.is_boundary_edge(edgeIndex):
-            boundary_edges.append(M.edges[edgeIndex])
+    #find columns to splice
+    columns = []
+    for vert in range(len(M.get_vertices())):
+        if vert in boundary_verts:
+            columns.append(vert)
+
+    #create d0I and d0B
+    d0B_list, d0I_list = slice_triplets(d0_list, columns)
+    d0I_min_list = [(a,b, -c) for (a,b,c) in d0I_list]
+
+    d0B = ddm.Sparse_Matrix(d0B_list, len(M.get_edges()), len(boundary_verts))
+    d0I = ddm.Sparse_Matrix(d0I_list, len(M.get_edges()), len(M.get_vertices()) - len(boundary_verts))
+    d0I_neg = ddm.Sparse_Matrix(d0I_min_list, len(M.get_edges()), len(M.get_vertices()) - len(boundary_verts))
+
+    #Construct the boundary uv's. Everything is stored by index of the vertices
+    boundary_vertex_to_uv = dict()
+    firstLoop = True
+    source_vert = list(boundary_edges)[0]
+    prev_angle = 0
+    target_vert = -1
+    prev_vert = boundary_edges[source_vert][1]
+    while firstLoop or source_vert != list(boundary_edges)[0]:
+        if firstLoop:
+            firstLoop = False
+        if boundary_edges[source_vert][0] == prev_vert:
+            target_vert = boundary_edges[source_vert][1]
+        else:
+            target_vert = boundary_edges[source_vert][0]
+        length = (M.get_vertex(target_vert) - M.get_vertex(source_vert)).length
+        angle = math.pi * 2.0 * length / boundary_length
+        boundary_vertex_to_uv[source_vert] = Vector( (r * math.cos(prev_angle), r * math.sin(prev_angle)) )
+        prev_angle += angle
+        prev_vert = source_vert
+        source_vert = target_vert
     
-    boundary_vertex_indices = []
-    for edge in boundary_edges:
-        if edge[0] not in boundary_vertex_indices:
-            boundary_vertex_indices.append(edge[0])
-        if edge[1] not in boundary_vertex_indices:
-            boundary_vertex_indices.append(edge[1])
+    #construct uB and vB
+    uB = []
+    vB = []
+    for v_i in range(len(M.get_vertices())):
+        if v_i in boundary_verts:
+            uB.append(boundary_vertex_to_uv[v_i].x)
+            vB.append(boundary_vertex_to_uv[v_i].y)
 
-    inner_edge_vertices = M.get_vertices().copy()
-    count = 0
-    for i in range(len(boundary_vertex_indices)):
-        inner_edge_vertices.pop(boundary_vertex_indices[i] - i)
+    lhs = d0I.transposed() * W * d0I
+    rhs = (d0I_neg.transposed() * W * d0B * uB)
 
+    lhs.Cholesky()
+    #solve for u
+    uI = lhs.solve(rhs)
+
+    rhs = (d0I_neg.transposed() * W * d0B * vB)
+    #solved for v
+    vI = lhs.solve(rhs)
+
+    i_count = 0
+    b_count = 0
+    for i in range(len(M.get_vertices())):
+        if i in boundary_verts:
+            M.uv_coordinates[i] = Vector((uB[b_count], vB[b_count]))
+            b_count += 1
+        else:
+            M.uv_coordinates[i] = Vector((uI[i_count], vI[i_count]))
+            i_count += 1
 
     return M
 
