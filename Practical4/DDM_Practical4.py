@@ -204,6 +204,7 @@ def DDM_Practical4(context):
     weights = cotan_weights(M)
 
     convex = Convex_Boundary_Method(M, weights, 5)
+    show_mesh(convex)
     # TODO: show_mesh on a copy of the active mesh with uniform UV coordinates, call this mesh "Uniform"
     
     # TODO: show_mesh on a copy of the active mesh with cot UV coordinates, call this mesh "Cot"
@@ -378,6 +379,7 @@ def LSCM(M):
     def length(i1, i2):
         e = M.vertices[i1] - M.vertices[i2]
         return (e[0] * e[0] + e[1] * e[1] + e[2] * e[2]) ** 0.5
+        
     def angle(i1, i2, i3):
         e1 = M.vertices[i1] - M.vertices[i2]
         e2 = M.vertices[i3] - M.vertices[i2]
@@ -398,7 +400,7 @@ def LSCM(M):
         R = Matrix([ (cos, sin), (-sin, cos) ])
         M_ijk = l_ij / l_jk * R
         return M_ijk
-    
+        
     A_list = [] 
     def insertMatrix(params):
         #(x, y) = topleft pivot
@@ -408,11 +410,8 @@ def LSCM(M):
         A_list.append( (x + 1, y + 0, matrix[1][0]) )
         A_list.append( (x + 1, y + 1, matrix[1][1]) )
         return
-    #A = ddm.Sparse_Matrix([(0, 0, 4), (1, 0, 12), (2, 0, -16), (0, 1, 12), (1, 1, 37), (2, 1, -43), (0, 2, -16), (1, 2, -43), (2, 2, 98)], 3, 3)
-    
     
     I = Matrix([ (1, 0), (0, 1) ])
-    
     T = len(M.get_faces())
     for t in range(T):
         triangle = M.get_faces()[t]
@@ -440,10 +439,8 @@ def LSCM(M):
 # Builds a Mesh class object from the active object in the scene.
 # in essence this function extracts data from the scene and returns it as a (simpler) Mesh class, triangulated where nessecary.
 def get_mesh():
-
     obj = bpy.context.selected_objects[0]
     print (obj.name)
-    
     verts = obj.data.vertices
     polys = obj.data.polygons
     
