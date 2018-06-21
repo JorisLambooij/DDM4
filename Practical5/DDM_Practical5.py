@@ -88,6 +88,14 @@ def local_step(source_vertices, target_vertices, list_of_1_rings):
         
         (U, Sigma, V) = SVD (P, Q)
         Ri = U * V.transpose()
+        if numpy.linalg.det(Ri) == -1:
+            # reflection instead of rotation
+            smallest_index = 0
+            for j in range(3):
+                if Ri[j][j] < Ri[smallest_index][smallest_index]:
+                    smallest_index = j
+            Ri = numpy.identity(3)
+            Ri[smallest_index][smallest_index] = -1
         locals.append(Ri)
     return locals
 
@@ -146,14 +154,14 @@ def DDM_Practical5(context):
     V = get_vertices(context)
     F = get_faces(context)
     #one_ring = neighbor_indices(0, V, F)
-    
+    print ("Creatin one-Rings list")
     one_rings = []
     for i in range(len(V)):
         one_rings.append(neighbor_indices(i, V, F))
-        
+    print ("Perform one local step")
     # this is just for testing local_step, no syntax errors (yet) (yay!)
     local_step(V, V, one_rings)
-    
+    print("get handles")
     # TODO: get handles
     handles = get_handles(selected_obj)
     
@@ -164,7 +172,7 @@ def DDM_Practical5(context):
     # TODO: initial guess
     
     # TODO: ARAP until tolerance
-
+    print ("Didelidone")
     pass
 
     
