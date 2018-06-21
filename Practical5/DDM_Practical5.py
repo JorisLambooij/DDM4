@@ -76,7 +76,18 @@ def SVD(P, Q):
 
 # Returns the dense matrix R
 def rigid_transformation_matrix(U, Sigma, V):
-    return Matrix()
+    Ri = U * V.transpose()
+    if numpy.linalg.det(Ri) == -1:
+        # reflection instead of rotation
+        smallest_index = 0
+        for j in range(3):
+            if Sigma[j][j] < Sigma[smallest_index][smallest_index]:
+                smallest_index = j
+        Sigma = numpy.identity(3)
+        Sigma[smallest_index][smallest_index] = -1
+        Ri = U * Sigma * V.transpose()
+        
+    return Ri
 
 # Returns a list of rigid transformation matrices R, one for each vertex (make sure the indices match)
 # the list_of_1_rings is a list of lists of neighbor_indices
@@ -87,20 +98,13 @@ def local_step(source_vertices, target_vertices, list_of_1_rings):
         Q = target_matrix(i, target_vertices, list_of_1_rings[i])
         
         (U, Sigma, V) = SVD (P, Q)
-        Ri = U * V.transpose()
-        if numpy.linalg.det(Ri) == -1:
-            # reflection instead of rotation
-            smallest_index = 0
-            for j in range(3):
-                if Ri[j][j] < Ri[smallest_index][smallest_index]:
-                    smallest_index = j
-            Ri = numpy.identity(3)
-            Ri[smallest_index][smallest_index] = -1
+        Ri = rigid_transformation_matrix(U, Sigma, V)
         locals.append(Ri)
     return locals
 
 # Returns the triplets of sparse d_0 matrix
 def d_0(vertices, faces):
+    
     return [(1,1,0.2), (1,2,0.3)]
     
 # Return the sparse diagonal weight matrix W
@@ -125,9 +129,9 @@ def global_step(vertices, rigid_matrices):
     
 # Returns the left hand side of least-squares system
 def precompute(vertices, faces):
-
+    
     # TODO: construct d_0 and split them into d_0|I and d_0|B
-
+    
     # TODO: construct LHS with the elements above and Cholesky it
 
     return ddm.Sparse_Matrix([], 1, 1)
@@ -135,47 +139,86 @@ def precompute(vertices, faces):
 # Initial guess, returns a list of identity matrices for each vertex
 def initial_guess(vertices):
     return [Matrix(), Matrix(), Matrix()]
-    
-def ARAP_iteration(vertices, faces, max_movement):
+
+# WARNING: Changed signature!!! original: (vertices, faces, max_movement)
+def ARAP_iteration(vertices, faces, max_movement, one_rings):
 
     # TODO: local step
+    locals = local_step(vertices, vertices, one_rings)
+    #apply local transforms
+    #for v in V:
+    
+    #global_step()
     
     # TODO: global step
 
+    new_vertices = []
     # Returns the new target vertices as a list (make sure the indices match)
-    return [(1,1,1), (1,1,1), (1,1,1)]
+    for i in range( len(vertices) ):
+        v = vertices[i]
+        #transform each vertex according to locals
+        
+        new_v_vector = numpy.matmul(list(locals[i]), list(v))
+        new_vertices.append( new_v_vector )
+     
+    return new_vertices
     
 def DDM_Practical5(context):
     print ("Running Practical 5")
     max_movement = 0.001
+    tolerance = 0.1
     max_iterations = 100
-
+    
     selected_obj = context.scene.objects.active
+    
     V = get_vertices(context)
     F = get_faces(context)
-    #one_ring = neighbor_indices(0, V, F)
-    print ("Creatin one-Rings list")
+    
+    print ("Creating one-Rings list")
     one_rings = []
     for i in range(len(V)):
         one_rings.append(neighbor_indices(i, V, F))
-    print ("Perform one local step")
-    # this is just for testing local_step, no syntax errors (yet) (yay!)
-    local_step(V, V, one_rings)
-    print("get handles")
+    
+    print("Getting handles")
     # TODO: get handles
     handles = get_handles(selected_obj)
-    
+    print ("Getting mesh data")
     # TODO: get mesh data
-    
+    print ("Precomputing Cholesky")
     # TODO: precompute
-    
+    print ("ARAP-ing...")
     # TODO: initial guess
+    initial_Ri = numpy.identity(3)
+    difference = 1
+    iterations = 0
     
+    new_V = ARAP_iteration(V, F, max_movement, one_rings)
+    
+    #show_mesh(V, F, selected_obj, context)
+    show_mesh(new_V, F, selected_obj, context)
     # TODO: ARAP until tolerance
     print ("Didelidone")
     pass
 
+# Builds a mesh using a list of triangles
+# This function is the same as from the previous practical
+def show_mesh(vertices, faces, selected_obj, context):
     
+    me = bpy.data.meshes.new("Mesh")
+    ob = bpy.data.objects.new("mesh", me)
+    ob.scale = selected_obj.scale
+    ob.location = selected_obj.location
+    ob.rotation_euler = selected_obj.rotation_euler
+    context.scene.objects.link(ob)
+    
+    edges = []
+    verts = []
+    for v in vertices:
+        verts.append( tuple(list(v)) )
+    
+    me.from_pydata(verts, edges, faces)
+    me.update()
+    return
 #########################################################################
 # You may place extra variables and functions here to keep your code tidy
 #########################################################################
