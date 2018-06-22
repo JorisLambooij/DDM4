@@ -147,7 +147,7 @@ def global_step(vertices, rigid_matrices):
         e /= 2
         g_vectors.append(e)
 
-    rhsp2 = d0I.transposed() * weights * g_vectors
+    rhsp2 = d0I.transposed() * weights_m * g_vectors
     rhs_x = rhsp1_x + rhsp2
     rhs_y = rhsp1_y + rhsp2
     rhs_z = rhsp1_z + rhsp2
@@ -179,8 +179,8 @@ def precompute(vertices, faces):
     # TODO: construct LHS with the elements above and Cholesky it
 
     d0_list = d_0(vertices, faces)
-    global weights
-    weights = weights(vertices, faces)
+    global weights_m
+    weights_m = weights(vertices, faces)
 
     global boundary_list
     boundary_set = set()
@@ -195,7 +195,7 @@ def precompute(vertices, faces):
     d0I = ddm.Sparse_Matrix(d0I_list, len(edges), len(vertices) - len(boundary_list))
     d0B = ddm.Sparse_Matrix(d0B_list, len(edges), len(boundary_list))
 
-    lhs = d0I.transposed() * weights * d0I
+    lhs = d0I.transposed() * weights_m * d0I
     lhs.Cholesky()
 
     global rhsp1_x, rhsp1_y, rhsp1_z, pB
@@ -208,9 +208,9 @@ def precompute(vertices, faces):
     pbx = [(vertices[i] * m).x for i,m in b_v]
     pby = [(vertices[i] * m).y for i,m in b_v]
     pbz = [(vertices[i] * m).z for i,m in b_v]
-    rhsp1_x = (-1 * d0I.transposed()) * weights * d0B * pbx
-    rhsp1_y = (-1 * d0I.transposed()) * weights * d0B * pby
-    rhsp1_z = (-1 * d0I.transposed()) * weights * d0B * pbz
+    rhsp1_x = (-1 * d0I.transposed()) * weights_m * d0B * pbx
+    rhsp1_y = (-1 * d0I.transposed()) * weights_m * d0B * pby
+    rhsp1_z = (-1 * d0I.transposed()) * weights_m * d0B * pbz
 
     return lhs
 
@@ -286,10 +286,15 @@ def DDM_Practical5(context):
     initial_Ri = numpy.identity(3)
     difference = 1
     iterations = 0
+
+    arb_Matrices = []
+    for i in range(len(V)):
+        arb_Matrices.append(numpy.identity(3))
     
-    new_V = ARAP_iteration(V, F, max_movement)
+    #new_V = ARAP_iteration(V, F, max_movement)
     #new_V2 = ARAP_iteration(new_V, F, max_movement)
     
+    new_V = global_step(vertices, arb_Matrices)
     #show_mesh(V, F, selected_obj, context)
     show_mesh(new_V, F, selected_obj, context)
     # TODO: ARAP until tolerance
@@ -319,7 +324,7 @@ def show_mesh(vertices, faces, selected_obj, context):
 
 d0I = None
 d0B = None
-weights = None
+weights_m = None
 lhs = None
 pB = None
 rhsp1_x = None
