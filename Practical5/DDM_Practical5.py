@@ -122,7 +122,7 @@ def weights(vertices, faces):
         for vertex in sharedVerts:
             w += 1 / math.tan((vertices[vertex] - vertices[edges[edgeIndex][0]]).angle(vertices[vertex] - vertices[edges[edgeIndex][1]]))
         w /= 2
-        weights_z.append(edgeIndex, edgeIndex, w)
+        weights_z.append( (edgeIndex, edgeIndex, w) )
     
     return ddm.Sparse_Matrix(weights_z, range(len(edges)), range(len(edges)))
 
