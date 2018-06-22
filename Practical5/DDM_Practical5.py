@@ -140,27 +140,33 @@ def global_step(vertices, rigid_matrices):
     
     # TODO: solve separately by x, y and z (use only a single vector)
 
-    g_vectors = []
+    g_vectorsx = []
+    g_vectorsy = []
+    g_vectorsz = []
     i = 0;
     for edge in range(len(edges)):
         e = rigid_matrices[edges[edge][0]].dot(vertices[edges[edge][0]] - vertices[edges[edge][1]])
         e -= rigid_matrices[edges[edge][1]].dot(vertices[edges[edge][1]] - vertices[edges[edge][0]])
         e /= 2
-        g_vectors.append( (edge, 0, e[0]) )
-        g_vectors.append( (edge, 1, e[1]) )
-        g_vectors.append( (edge, 2, e[2]) )
-    g = ddm.Sparse_Matrix(g_vectors, len(edges), 3)
+        g_vectorsx.append( (edge, 0, e[0]) )
+        g_vectorsy.append( (edge, 1, e[1]) )
+        g_vectorsz.append( (edge, 2, e[2]) )
+    gx = ddm.Sparse_Matrix(g_vectorsx, len(edges), 1)
+    gy = ddm.Sparse_Matrix(g_vectorsy, len(edges), 1)
+    gz = ddm.Sparse_Matrix(g_vectorsz, len(edges), 1)
 
-    rhsp2 = d0I.transposed() * weights_m * g
+    rhsp2_x = d0I.transposed() * weights_m * gx
+    rhsp2_y = d0I.transposed() * weights_m * gy
+    rhsp2_z = d0I.transposed() * weights_m * gz
     rhs_x = []
     rhs_y = []
     rhs_z = []
    
-    for tuplist in [zip(a,b) for a,b in zip(rhsp1_x.flatten(), rhsp2.flatten())]:
+    for tuplist in [zip(a,b) for a,b in zip(rhsp1_x.flatten(), rhsp2_x.flatten())]:
         rhs_x += [i + j for i,j in tuplist]
-    for tuplist in [zip(a,b) for a,b in zip(rhsp1_y.flatten(), rhsp2.flatten())]:
+    for tuplist in [zip(a,b) for a,b in zip(rhsp1_y.flatten(), rhsp2_y.flatten())]:
         rhs_y += [i + j for i,j in tuplist]
-    for tuplist in [zip(a,b) for a,b in zip(rhsp1_z.flatten(), rhsp2.flatten())]:
+    for tuplist in [zip(a,b) for a,b in zip(rhsp1_z.flatten(), rhsp2_z.flatten())]:
         rhs_z += [i + j for i,j in tuplist]
 
     v_i_x = lhs.solve(rhs_x)
@@ -178,7 +184,6 @@ def global_step(vertices, rigid_matrices):
         else:
             results.append( (v_i_x[i_c], v_i_y[i_c], v_i_z[i_c]) )
             i_c += 1
-
 
     return results
     
@@ -231,9 +236,9 @@ def precompute(vertices, faces):
     pbx = ddm.Sparse_Matrix(pbx_pre1, len(boundary_list), 1)
     pby = ddm.Sparse_Matrix(pby_pre1, len(boundary_list), 1)
     pbz = ddm.Sparse_Matrix(pbz_pre1, len(boundary_list), 1)
-    rhsp1_x = (d0I_neg.transposed()) * weights_m * d0B * pbx
-    rhsp1_y = (d0I_neg.transposed()) * weights_m * d0B * pby
-    rhsp1_z = (d0I_neg.transposed()) * weights_m * d0B * pbz
+    rhsp1_x = d0I_neg.transposed() * weights_m * d0B * pbx
+    rhsp1_y = d0I_neg.transposed() * weights_m * d0B * pby
+    rhsp1_z = d0I_neg.transposed() * weights_m * d0B * pbz
 
     return lhs
 
