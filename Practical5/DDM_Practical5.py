@@ -104,23 +104,15 @@ def local_step(source_vertices, target_vertices, list_of_1_rings):
 
 # Returns the triplets of sparse d_0 matrix
 def d_0(vertices, faces):
-    
-    return [(1,1,0.2), (1,2,0.3)]
+    d0_list = []
+    for e_i in range(len(edges)):
+        d0_list.append( (e_i, edges[e_i][0], -1) )
+        d0_list.append( (e_i, edges[e_i][1], 1) )
+
+    return d0_list
     
 # Return the sparse diagonal weight matrix W
 def weights(vertices, faces):
-    edges = []
-    edge_set = set()
-    for triangle in faces:
-        for i in range(3):
-            j = i + 1
-            if j == 3:
-                j = 0
-            edge = (triangle[i], triangle[j])
-            edge_r = (triangle[j], triangle[i])
-            if edge not in edge_set and edge_r not in edge_set:
-                edges.append( edge )
-                edge_set.add(edge)    
     weights = []
     for edgeIndex in range(len(edges)):
         neighb1 = set(neighbor_indices(edges[edgeIndex][0], vertices, faces))
@@ -159,7 +151,26 @@ def precompute(vertices, faces):
     
     # TODO: construct LHS with the elements above and Cholesky it
 
-    return ddm.Sparse_Matrix([], 1, 1)
+    d0_list = d_0(vertices, faces)
+    global weights
+    weights = weights(vertices, faces)
+
+    boundary_set = set()
+    for handle in handles:
+        for vert_i in handle[0]:
+            boundary_set.add(vert_i)
+    boundary_list = list(boundary_set).sort()
+
+    d0B_list, d0I_list = slice_triplets(d0_list, boundary_list)
+    
+    global d0I, d0B
+    d0I = ddm.Sparse_Matrix(d0I_list, len(edges), len(vertices) - len(boundary_list))
+    d0B = ddm.Sparse_Matrix(d0B_list, len(edges), len(boundary_list))
+
+    lhs = d0I.transposed() * weights * d0I
+    lhs.Cholesky()
+
+    return lhs
 
 # Initial guess, returns a list of identity matrices for each vertex
 def initial_guess(vertices):
@@ -209,7 +220,7 @@ def DDM_Practical5(context):
     tolerance = 0.1
     max_iterations = 100
     
-    global one_rings, handles
+    global one_rings, handles, lhs
     selected_obj = context.scene.objects.active
     print (numpy.identity(3))
     print("Getting handles")
@@ -218,6 +229,8 @@ def DDM_Practical5(context):
     print ("Getting mesh data")
     V = get_vertices(context)
     F = get_faces(context)
+
+    build_edge_list(V, F)
     
     print ("Creating one-Rings list")
     one_rings = []
@@ -225,7 +238,7 @@ def DDM_Practical5(context):
         one_rings.append(neighbor_indices(i, V, F))
     
     print ("Precomputing Cholesky")
-    # TODO: precompute
+    lhs = precompute(V, F)
     print ("ARAP-ing...")
     # TODO: initial guess
     initial_Ri = numpy.identity(3)
@@ -252,10 +265,8 @@ def show_mesh(vertices, faces, selected_obj, context):
     ob.rotation_euler = selected_obj.rotation_euler
     context.scene.objects.link(ob)
     
-    edges = []
-    verts = []
-    for v in vertices:
-        verts.append( tuple(list(v)) )
+    edges = edges
+    verts = vertices
     
     me.from_pydata(verts, edges, faces)
     me.update()
@@ -264,9 +275,28 @@ def show_mesh(vertices, faces, selected_obj, context):
 # You may place extra variables and functions here to keep your code tidy
 #########################################################################
 
-d0B = Matrix()
-d0I = Matrix()
-d0I_neg = Matrix()
+d0B
+d0I
+weights
+lhs
+handles = []
+one_rings = []
+edges = []
+
+def build_edge_list(vertices, faces):
+    global edges
+    edge_set = set()
+    for triangle in faces:
+        for i in range(3):
+            j = i + 1
+            if j == 3:
+                j = 0
+            edge = (triangle[i], triangle[j])
+            edge_r = (triangle[j], triangle[i])
+            if edge not in edge_set and edge_r not in edge_set:
+                edges.append( edge )
+                edge_set.add(edge)
+    return
 
 # Find the vertices within the bounding box by transforming them into the bounding box's local space and then checking on axis aligned bounds.
 def get_handle_vertices(vertices, bounding_box_transform, mesh_transform):
