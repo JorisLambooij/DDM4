@@ -162,7 +162,7 @@ def global_step(vertices, rigid_matrices):
         rhs_y += [i + j for i,j in tuplist]
     for tuplist in [zip(a,b) for a,b in zip(rhsp1_z.flatten(), rhsp2.flatten())]:
         rhs_z += [i + j for i,j in tuplist]
-    print(rhs_x)
+    #print(rhs_x)
 
     v_i_x = lhs.solve(rhs_x)
     v_i_y = lhs.solve(rhs_y)
@@ -317,8 +317,10 @@ def DDM_Practical5(context):
     
     #new_V = ARAP_iteration(V, F, max_movement)
     #new_V2 = ARAP_iteration(new_V, F, max_movement)
-    
     new_V = global_step(V, arb_Matrices)
+    
+    print ("Original length", len(V))
+    print ("New length", len(new_V))
     #show_mesh(V, F, selected_obj, context)
     show_mesh(new_V, F, selected_obj, context)
     # TODO: ARAP until tolerance
@@ -331,9 +333,9 @@ def show_mesh(vertices, faces, selected_obj, context):
     
     me = bpy.data.meshes.new("Mesh")
     ob = bpy.data.objects.new("mesh", me)
-    ob.scale = selected_obj.scale
-    ob.location = selected_obj.location
-    ob.rotation_euler = selected_obj.rotation_euler
+    #ob.scale = selected_obj.scale
+    #ob.location = selected_obj.location
+    #ob.rotation_euler = selected_obj.rotation_euler
     context.scene.objects.link(ob)
     
     edgez = edges
