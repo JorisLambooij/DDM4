@@ -21,6 +21,8 @@ from numpy import identity
 #################################
 # Place additional imports here #
 #################################
+import math
+
 
 # Return a list of vertices
 def get_vertices(context):
@@ -41,15 +43,14 @@ def get_faces(context):
 
 # Returns the 1-ring (a list of vertex indices) for a vertex index
 def neighbor_indices(vertex_index, vertices, faces):
-    verts = [vertex_index]
+    verts = set()
     for f in faces:
         for i in range(3):
             if f[i] == vertex_index:
                 for j in range(3):
-                    if f[j] not in verts:
-                        verts.append(f[j])
+                    verts.add(f[j])
     verts.remove(vertex_index)
-    return verts
+    return list(verts)
     
 # Calculates the source (non-sparse) matrix P
 def source_matrix(p_index, vertices, neighbor_indices):
@@ -108,7 +109,30 @@ def d_0(vertices, faces):
     
 # Return the sparse diagonal weight matrix W
 def weights(vertices, faces):
-    return ddm.Sparse_Matrix([], 1, 1)
+    edges = []
+    edge_set = set()
+    for triangle in faces:
+        for i in range(3):
+            j = i + 1
+            if j == 3:
+                j = 0
+            edge = (triangle[i], triangle[j])
+            edge_r = (triangle[j], triangle[i])
+            if edge not in edge_set and edge_r not in edge_set:
+                edges.append( edge )
+                edge_set.add(edge)    
+    weights = []
+    for edgeIndex in range(len(edges)):
+        neighb1 = set(neighbor_indices(edges[edgeIndex][0], vertices, faces))
+        neighb2 = set(neighbor_indices(edges[edgeIndex][1], vertices, faces))
+        sharedVerts = neighb1 & neighb2
+        w = 0.0
+        for vertex in sharedVerts:
+            w += 1 / math.tan((vertices[vertex] - vertices[edges[edgeIndex][0]]).angle(vertices[vertex] - vertices[edges[edgeIndex][1]]))
+        w /= 2
+        weights.append(w)
+    
+    return ddm.Sparse_Matrix(weights, range(len(edges)), range(len(edges)))
 
 # Returns the right hand side of least-squares system
 def RHS(vertices, faces):
@@ -240,6 +264,7 @@ def show_mesh(vertices, faces, selected_obj, context):
 # You may place extra variables and functions here to keep your code tidy
 #########################################################################
 
+d0B = Matrix()
 d0I = Matrix()
 d0I_neg = Matrix()
 
