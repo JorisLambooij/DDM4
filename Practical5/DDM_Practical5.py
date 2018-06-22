@@ -146,12 +146,23 @@ def global_step(vertices, rigid_matrices):
         e = rigid_matrices[edges[edge][0]].dot(vertices[edges[edge][0]] - vertices[edges[edge][1]])
         e += rigid_matrices[edges[edge][1]].dot(vertices[edges[edge][1]] - vertices[edges[edge][0]])
         e /= 2
-        g_vectors.append(e)
+        g_vectors.append( (edge, 0, e[0]) )
+        g_vectors.append( (edge, 1, e[1]) )
+        g_vectors.append( (edge, 2, e[2]) )
+    g = ddm.Sparse_Matrix(g_vectors, len(edges), 3)
 
-    rhsp2 = d0I.transposed() * weights_m * g_vectors
-    rhs_x = rhsp1_x + rhsp2
-    rhs_y = rhsp1_y + rhsp2
-    rhs_z = rhsp1_z + rhsp2
+    rhsp2 = d0I.transposed() * weights_m * g
+    rhs_x = []
+    rhs_y = []
+    rhs_z = []
+   
+    for tuplist in [zip(a,b) for a,b in zip(rhsp1_x.flatten(), rhsp2.flatten())]:
+        rhs_x += [i + j for i,j in tuplist]
+    for tuplist in [zip(a,b) for a,b in zip(rhsp1_y.flatten(), rhsp2.flatten())]:
+        rhs_y += [i + j for i,j in tuplist]
+    for tuplist in [zip(a,b) for a,b in zip(rhsp1_z.flatten(), rhsp2.flatten())]:
+        rhs_z += [i + j for i,j in tuplist]
+    print(rhs_x)
 
     v_i_x = lhs.solve(rhs_x)
     v_i_y = lhs.solve(rhs_y)
@@ -208,9 +219,19 @@ def precompute(vertices, faces):
             b_v.append( (ind, m) )
     b_v.sort(key=lambda tup: tup[0])
     pB = [(m * vertices[i]).to_tuple() for i,m in b_v]
-    pbx = [(m * vertices[i]).x for i,m in b_v]
-    pby = [(m * vertices[i]).y for i,m in b_v]
-    pbz = [(m * vertices[i]).z for i,m in b_v]
+    pbx_pre = [(m * vertices[i]).x for i,m in b_v]
+    pby_pre = [(m * vertices[i]).y for i,m in b_v]
+    pbz_pre = [(m * vertices[i]).z for i,m in b_v]
+    pbx_pre1 = []
+    pby_pre1 = []
+    pbz_pre1 = []
+    for i in range(len(pbx_pre)):
+        pbx_pre1.append( (i, 0, pbx_pre[i]) )
+        pby_pre1.append( (i, 0, pby_pre[i]) )
+        pbz_pre1.append( (i, 0, pbz_pre[i]) )
+    pbx = ddm.Sparse_Matrix(pbx_pre1, len(boundary_list), 1)
+    pby = ddm.Sparse_Matrix(pby_pre1, len(boundary_list), 1)
+    pbz = ddm.Sparse_Matrix(pbz_pre1, len(boundary_list), 1)
     rhsp1_x = (d0I_neg.transposed()) * weights_m * d0B * pbx
     rhsp1_y = (d0I_neg.transposed()) * weights_m * d0B * pby
     rhsp1_z = (d0I_neg.transposed()) * weights_m * d0B * pbz
@@ -315,10 +336,10 @@ def show_mesh(vertices, faces, selected_obj, context):
     ob.rotation_euler = selected_obj.rotation_euler
     context.scene.objects.link(ob)
     
-    edges = edges
+    edgez = edges
     verts = vertices
     
-    me.from_pydata(verts, edges, faces)
+    me.from_pydata(verts, edgez, faces)
     me.update()
     return
 #########################################################################
