@@ -115,8 +115,8 @@ def d_0(vertices, faces):
 def weights(vertices, faces):
     weights_z = []
     for edgeIndex in range(len(edges)):
-        neighb1 = set(neighbor_indices(edges[edgeIndex][0], vertices, faces))
-        neighb2 = set(neighbor_indices(edges[edgeIndex][1], vertices, faces))
+        neighb1 = set(one_rings[edges[edgeIndex][0]])
+        neighb2 = set(one_rings[edges[edgeIndex][1]])
         sharedVerts = neighb1 & neighb2
         w = 0.0
         for vertex in sharedVerts:
@@ -185,10 +185,12 @@ def precompute(vertices, faces):
     print("it reaches step " + str(2))
     global boundary_list
     boundary_set = set()
+    print(handles)
     for handle in handles:
         for vert_i in handle[0]:
             boundary_set.add(vert_i)
     boundary_list = list(boundary_set).sort()
+    print(boundary_list)
 
     d0B_list, d0I_list = slice_triplets(d0_list, boundary_list)
     print("it reaches step " + str(3))
