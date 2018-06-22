@@ -56,14 +56,18 @@ def neighbor_indices(vertex_index, vertices, faces):
 def source_matrix(p_index, vertices, neighbor_indices):
     P_list = []
     for p in neighbor_indices:
-        P_list.append( list(vertices[p_index] - vertices[p]) )
+        pi = vertices[p_index]
+        q = vertices[p]
+        P_list.append( (pi[0] - q[0], pi[1] - q[1], pi[2] - q[2]) )
     return Matrix(P_list)
     
 # Calculates the target (non-sparse) matrix Q
 def target_matrix(p_index, vertices, neighbor_indices):
     Q_list = []
     for q in neighbor_indices:
-        Q_list.append( list(vertices[p_index] - vertices[q]) )
+        pi = vertices[p_index]
+        q = vertices[q]
+        Q_list.append( (pi[0] - q[0], pi[1] - q[1], pi[2] - q[2]) )
     return Matrix(Q_list)
     
 # Returns a triple of three dense matrices that are the Singular Value Decomposition (SVD)
@@ -143,8 +147,8 @@ def global_step(vertices, rigid_matrices):
     g_vectors = []
     i = 0;
     for edge in range(len(edges)):
-        e = rigid_matrices[edges[edge][0]].dot(vertices[edges[edge][0]] - vertices[edges[edge][1]])
-        e -= rigid_matrices[edges[edge][1]].dot(vertices[edges[edge][1]] - vertices[edges[edge][0]])
+        e = Vector(rigid_matrices[edges[edge][0]].dot(vertices[edges[edge][0]])) - Vector(vertices[edges[edge][1]])
+        e -= Vector(rigid_matrices[edges[edge][1]].dot(vertices[edges[edge][1]])) - Vector(vertices[edges[edge][0]])
         e /= 2
         g_vectors.append( (edge, 0, e[0]) )
         g_vectors.append( (edge, 1, e[1]) )
@@ -261,11 +265,9 @@ def ARAP_iteration(vertices, faces, max_movement):
     # TODO: local step
     locals = local_step(vertices, handled_vertices, one_rings)
     
-    print(locals[0], locals[3360])
     #apply local transforms
-    #for v in V:
     
-    #global_step()
+    #globals = global_step(vertices, locals)
     
     # TODO: global step
 
@@ -275,6 +277,7 @@ def ARAP_iteration(vertices, faces, max_movement):
         v = vertices[i]
         #transform each vertex according to locals
         new_v_vector = numpy.matmul(list(locals[i]), list(v))
+        #new_v_vector = globals[i]
         new_vertices.append( new_v_vector )
     
     return new_vertices
@@ -315,23 +318,24 @@ def DDM_Practical5(context):
         arb_Matrices.append(numpy.identity(3))
     
     #new_V = ARAP_iteration(V, F, max_movement)
-    #new_V2 = ARAP_iteration(new_V, F, max_movement)
+    new_V2 = ARAP_iteration(V, F, max_movement)
     new_V = global_step(V, arb_Matrices)
     
-    print ("Original length", len(V))
-    print ("New length", len(new_V))
-    #show_mesh(V, F, selected_obj, context)
-    show_mesh(new_V, F, selected_obj, context)
+    #for i in range(1):
+    #    new_V = ARAP_iteration(new_V, F, max_movement)
+    
+    show_mesh(new_V2, F, selected_obj, context, "After 1 local Step")
+    show_mesh(new_V, F, selected_obj, context, "After 1 global Step with identity Rs")
     # TODO: ARAP until tolerance
-    print ("Didelidone")
+    
     pass
 
 # Builds a mesh using a list of triangles
 # This function is the same as from the previous practical
-def show_mesh(vertices, faces, selected_obj, context):
+def show_mesh(vertices, faces, selected_obj, context, name):
     
     me = bpy.data.meshes.new("Mesh")
-    ob = bpy.data.objects.new("mesh", me)
+    ob = bpy.data.objects.new(name, me)
     #ob.scale = selected_obj.scale
     #ob.location = selected_obj.location
     #ob.rotation_euler = selected_obj.rotation_euler
