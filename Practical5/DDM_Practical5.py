@@ -113,7 +113,7 @@ def d_0(vertices, faces):
     
 # Return the sparse diagonal weight matrix W
 def weights(vertices, faces):
-    weights = []
+    weights_z = []
     for edgeIndex in range(len(edges)):
         neighb1 = set(neighbor_indices(edges[edgeIndex][0], vertices, faces))
         neighb2 = set(neighbor_indices(edges[edgeIndex][1], vertices, faces))
@@ -122,9 +122,9 @@ def weights(vertices, faces):
         for vertex in sharedVerts:
             w += 1 / math.tan((vertices[vertex] - vertices[edges[edgeIndex][0]]).angle(vertices[vertex] - vertices[edges[edgeIndex][1]]))
         w /= 2
-        weights.append(w)
+        weights_z.append(edgeIndex, edgeIndex, w)
     
-    return ddm.Sparse_Matrix(weights, range(len(edges)), range(len(edges)))
+    return ddm.Sparse_Matrix(weights_z, range(len(edges)), range(len(edges)))
 
 # Returns the right hand side of least-squares system
 def RHS(vertices, faces):
