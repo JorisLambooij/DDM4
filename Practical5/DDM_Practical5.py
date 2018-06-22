@@ -141,9 +141,10 @@ def global_step(vertices, rigid_matrices):
     # TODO: solve separately by x, y and z (use only a single vector)
 
     g_vectors = []
+    i = 0;
     for edge in range(len(edges)):
-        e = rigid_matrices[edges[edge][0]] * (vertices[edges[edge][0]] - vertices[edges[edge][1]])
-        e += rigid_matrices[edges[edge][1]] * (vertices[edges[edge][1]] - vertices[edges[edge][0]])
+        e = rigid_matrices[edges[edge][0]].dot(vertices[edges[edge][0]] - vertices[edges[edge][1]])
+        e += rigid_matrices[edges[edge][1]].dot(vertices[edges[edge][1]] - vertices[edges[edge][0]])
         e /= 2
         g_vectors.append(e)
 
