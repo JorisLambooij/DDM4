@@ -142,8 +142,8 @@ def global_step(vertices, rigid_matrices):
 
     g_vectors = []
     for edge in range(len(edges)):
-        e = (vertices[edge[0]] - vertices[edge[1]]) * rigid_matrices[edge[0]]
-        e += (vertices[edge[1]] - vertices[edge[0]]) * rigid_matrices[edge[1]]
+        e = (vertices[edges[edge][0]] - vertices[edges[edge][1]]) * rigid_matrices[edges[edge][0]]
+        e += (vertices[edges[edge][1]] - vertices[edges[edge][0]]) * rigid_matrices[edges[edge][1]]
         e /= 2
         g_vectors.append(e)
 
@@ -185,19 +185,20 @@ def precompute(vertices, faces):
     print("it reaches step " + str(2))
     global boundary_list
     boundary_set = set()
-    print(handles)
     for handle in handles:
         for vert_i in handle[0]:
             boundary_set.add(vert_i)
-    boundary_list = list(boundary_set).sort()
-    print(boundary_list)
+    boundary_list = list(boundary_set)
+    boundary_list.sort()
 
     d0B_list, d0I_list = slice_triplets(d0_list, boundary_list)
     print("it reaches step " + str(3))
     
-    global d0I, d0B
+    global d0I, d0B, d0I_neg
     d0I = ddm.Sparse_Matrix(d0I_list, len(edges), len(vertices) - len(boundary_list))
     d0B = ddm.Sparse_Matrix(d0B_list, len(edges), len(boundary_list))
+    d0I_neg_list = [(a,b, -c) for (a, b, c) in d0I_list]
+    d0I_neg = ddm.Sparse_Matrix(d0I_neg_list, len(edges), len(vertices) - len(boundary_list))
 
     lhs = d0I.transposed() * weights_m * d0I
     lhs.Cholesky()
@@ -213,9 +214,9 @@ def precompute(vertices, faces):
     pbx = [(vertices[i] * m).x for i,m in b_v]
     pby = [(vertices[i] * m).y for i,m in b_v]
     pbz = [(vertices[i] * m).z for i,m in b_v]
-    rhsp1_x = (-1 * d0I.transposed()) * weights_m * d0B * pbx
-    rhsp1_y = (-1 * d0I.transposed()) * weights_m * d0B * pby
-    rhsp1_z = (-1 * d0I.transposed()) * weights_m * d0B * pbz
+    rhsp1_x = (d0I_neg.transposed()) * weights_m * d0B * pbx
+    rhsp1_y = (d0I_neg.transposed()) * weights_m * d0B * pby
+    rhsp1_z = (d0I_neg.transposed()) * weights_m * d0B * pbz
     print("it reaches step " + str(5))
 
     return lhs
@@ -329,6 +330,7 @@ def show_mesh(vertices, faces, selected_obj, context):
 #########################################################################
 
 d0I = None
+d0I_neg = None
 d0B = None
 weights_m = None
 lhs = None
