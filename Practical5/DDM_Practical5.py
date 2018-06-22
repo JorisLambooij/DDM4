@@ -204,7 +204,7 @@ def precompute(vertices, faces):
         for ind in l:
             b_v.append( (ind, m) )
     b_v.sort(key=lambda tup: tup[0])
-    pB = [vertices[i].to_tuple() * m for i,m in b_v]
+    pB = [(vertices[i] * m).to_tuple() for i,m in b_v]
     pbx = [vertices[i].x * m for i,m in b_v]
     pby = [vertices[i].y * m for i,m in b_v]
     pbz = [vertices[i].z * m for i,m in b_v]
