@@ -124,7 +124,7 @@ def weights(vertices, faces):
         w /= 2
         weights_z.append( (edgeIndex, edgeIndex, w) )
     
-    return ddm.Sparse_Matrix(weights_z, range(len(edges)), range(len(edges)))
+    return ddm.Sparse_Matrix(weights_z, len(edges), len(edges))
 
 # Returns the right hand side of least-squares system
 def RHS(vertices, faces):
@@ -179,9 +179,10 @@ def precompute(vertices, faces):
     # TODO: construct LHS with the elements above and Cholesky it
 
     d0_list = d_0(vertices, faces)
+    print("it reaches step " + str(1))
     global weights_m
     weights_m = weights(vertices, faces)
-
+    print("it reaches step " + str(2))
     global boundary_list
     boundary_set = set()
     for handle in handles:
@@ -190,6 +191,7 @@ def precompute(vertices, faces):
     boundary_list = list(boundary_set).sort()
 
     d0B_list, d0I_list = slice_triplets(d0_list, boundary_list)
+    print("it reaches step " + str(3))
     
     global d0I, d0B
     d0I = ddm.Sparse_Matrix(d0I_list, len(edges), len(vertices) - len(boundary_list))
@@ -197,6 +199,7 @@ def precompute(vertices, faces):
 
     lhs = d0I.transposed() * weights_m * d0I
     lhs.Cholesky()
+    print("it reaches step " + str(4))
 
     global rhsp1_x, rhsp1_y, rhsp1_z, pB
     b_v = []
@@ -211,6 +214,7 @@ def precompute(vertices, faces):
     rhsp1_x = (-1 * d0I.transposed()) * weights_m * d0B * pbx
     rhsp1_y = (-1 * d0I.transposed()) * weights_m * d0B * pby
     rhsp1_z = (-1 * d0I.transposed()) * weights_m * d0B * pbz
+    print("it reaches step " + str(5))
 
     return lhs
 
