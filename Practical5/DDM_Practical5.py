@@ -142,8 +142,8 @@ def global_step(vertices, rigid_matrices):
 
     g_vectors = []
     for edge in range(len(edges)):
-        e = (vertices[edges[edge][0]] - vertices[edges[edge][1]]) * rigid_matrices[edges[edge][0]]
-        e += (vertices[edges[edge][1]] - vertices[edges[edge][0]]) * rigid_matrices[edges[edge][1]]
+        e = rigid_matrices[edges[edge][0]] * (vertices[edges[edge][0]] - vertices[edges[edge][1]])
+        e += rigid_matrices[edges[edge][1]] * (vertices[edges[edge][1]] - vertices[edges[edge][0]])
         e /= 2
         g_vectors.append(e)
 
@@ -179,10 +179,8 @@ def precompute(vertices, faces):
     # TODO: construct LHS with the elements above and Cholesky it
 
     d0_list = d_0(vertices, faces)
-    print("it reaches step " + str(1))
     global weights_m
     weights_m = weights(vertices, faces)
-    print("it reaches step " + str(2))
     global boundary_list
     boundary_set = set()
     for handle in handles:
@@ -192,7 +190,6 @@ def precompute(vertices, faces):
     boundary_list.sort()
 
     d0B_list, d0I_list = slice_triplets(d0_list, boundary_list)
-    print("it reaches step " + str(3))
     
     global d0I, d0B, d0I_neg
     d0I = ddm.Sparse_Matrix(d0I_list, len(edges), len(vertices) - len(boundary_list))
@@ -202,7 +199,6 @@ def precompute(vertices, faces):
 
     lhs = d0I.transposed() * weights_m * d0I
     lhs.Cholesky()
-    print("it reaches step " + str(4))
 
     global rhsp1_x, rhsp1_y, rhsp1_z, pB
     b_v = []
@@ -210,14 +206,13 @@ def precompute(vertices, faces):
         for ind in l:
             b_v.append( (ind, m) )
     b_v.sort(key=lambda tup: tup[0])
-    pB = [(vertices[i] * m).to_tuple() for i,m in b_v]
-    pbx = [(vertices[i] * m).x for i,m in b_v]
-    pby = [(vertices[i] * m).y for i,m in b_v]
-    pbz = [(vertices[i] * m).z for i,m in b_v]
+    pB = [(m * vertices[i]).to_tuple() for i,m in b_v]
+    pbx = [(m * vertices[i]).x for i,m in b_v]
+    pby = [(m * vertices[i]).y for i,m in b_v]
+    pbz = [(m * vertices[i]).z for i,m in b_v]
     rhsp1_x = (d0I_neg.transposed()) * weights_m * d0B * pbx
     rhsp1_y = (d0I_neg.transposed()) * weights_m * d0B * pby
     rhsp1_z = (d0I_neg.transposed()) * weights_m * d0B * pbz
-    print("it reaches step " + str(5))
 
     return lhs
 
