@@ -294,7 +294,7 @@ def DDM_Practical5(context):
     #new_V = ARAP_iteration(V, F, max_movement)
     #new_V2 = ARAP_iteration(new_V, F, max_movement)
     
-    new_V = global_step(vertices, arb_Matrices)
+    new_V = global_step(V, arb_Matrices)
     #show_mesh(V, F, selected_obj, context)
     show_mesh(new_V, F, selected_obj, context)
     # TODO: ARAP until tolerance
