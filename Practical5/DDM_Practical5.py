@@ -12,6 +12,7 @@
 import ddm
 import bpy
 import numpy
+from mathutils import Vector as mVector
 from numpy import array as Vector
 from numpy import matrix as Matrix
 from numpy import identity
@@ -35,7 +36,7 @@ def get_faces(context):
     faces = []
     for f in selected_obj.data.polygons:
         for i in range( len(f.vertices) - 2):
-            faces.append((f.vertices[i], f.vertices[i+1], f.vertices[i+2]))
+            faces.append((f.vertices[0], f.vertices[i+1], f.vertices[i+2]))
     return faces
 
 # Returns the 1-ring (a list of vertex indices) for a vertex index
@@ -54,14 +55,14 @@ def neighbor_indices(vertex_index, vertices, faces):
 def source_matrix(p_index, vertices, neighbor_indices):
     P_list = []
     for p in neighbor_indices:
-        P_list.append( vertices[p_index] - vertices[p] )
+        P_list.append( list(vertices[p_index] - vertices[p]) )
     return Matrix(P_list)
     
 # Calculates the target (non-sparse) matrix Q
 def target_matrix(p_index, vertices, neighbor_indices):
     Q_list = []
     for q in neighbor_indices:
-        Q_list.append( vertices[p_index] - vertices[q] )
+        Q_list.append( list(vertices[p_index] - vertices[q]) )
     return Matrix(Q_list)
     
 # Returns a triple of three dense matrices that are the Singular Value Decomposition (SVD)
@@ -76,19 +77,17 @@ def SVD(P, Q):
 
 # Returns the dense matrix R
 def rigid_transformation_matrix(U, Sigma, V):
-    Ri = U * V.transpose()
+    Ri = U * V
     if numpy.linalg.det(Ri) == -1:
         # reflection instead of rotation
         smallest_index = 0
         for j in range(3):
-            if Sigma[j][j] < Sigma[smallest_index][smallest_index]:
+            if Sigma[j] < Sigma[smallest_index]:
                 smallest_index = j
         Sigma = numpy.identity(3)
         Sigma[smallest_index][smallest_index] = -1
-        Ri = U * Sigma * V.transpose()
-        
+        Ri = U * Sigma * V
     return Ri
-
 # Returns a list of rigid transformation matrices R, one for each vertex (make sure the indices match)
 # the list_of_1_rings is a list of lists of neighbor_indices
 def local_step(source_vertices, target_vertices, list_of_1_rings):
@@ -143,10 +142,26 @@ def initial_guess(vertices):
     return [Matrix(), Matrix(), Matrix()]
 
 # WARNING: Changed signature!!! original: (vertices, faces, max_movement)
-def ARAP_iteration(vertices, faces, max_movement, one_rings):
+def ARAP_iteration(vertices, faces, max_movement):
 
+    handled_vertices = []
+    i = 0
+    for handle in handles:
+        for i in range( len(vertices)):
+            if i not in handle[0]:
+                handled_vertices.append(vertices[i])
+            else:
+                #print (i)
+                old_v = list(vertices[i])
+                old_v.append(1)
+                new_v4 = numpy.matmul(list(handle[1]), old_v)
+                new_v3 = mVector((new_v4[0], new_v4[1], new_v4[2]))
+                handled_vertices.append(new_v3)
+    
     # TODO: local step
-    locals = local_step(vertices, vertices, one_rings)
+    locals = local_step(vertices, handled_vertices, one_rings)
+    
+    print(locals[0], locals[3360])
     #apply local transforms
     #for v in V:
     
@@ -159,10 +174,9 @@ def ARAP_iteration(vertices, faces, max_movement, one_rings):
     for i in range( len(vertices) ):
         v = vertices[i]
         #transform each vertex according to locals
-        
         new_v_vector = numpy.matmul(list(locals[i]), list(v))
         new_vertices.append( new_v_vector )
-     
+    
     return new_vertices
     
 def DDM_Practical5(context):
@@ -171,8 +185,13 @@ def DDM_Practical5(context):
     tolerance = 0.1
     max_iterations = 100
     
+    global one_rings, handles
     selected_obj = context.scene.objects.active
+    print (numpy.identity(3))
+    print("Getting handles")
+    handles = get_handles(selected_obj)
     
+    print ("Getting mesh data")
     V = get_vertices(context)
     F = get_faces(context)
     
@@ -181,11 +200,6 @@ def DDM_Practical5(context):
     for i in range(len(V)):
         one_rings.append(neighbor_indices(i, V, F))
     
-    print("Getting handles")
-    # TODO: get handles
-    handles = get_handles(selected_obj)
-    print ("Getting mesh data")
-    # TODO: get mesh data
     print ("Precomputing Cholesky")
     # TODO: precompute
     print ("ARAP-ing...")
@@ -194,7 +208,8 @@ def DDM_Practical5(context):
     difference = 1
     iterations = 0
     
-    new_V = ARAP_iteration(V, F, max_movement, one_rings)
+    new_V = ARAP_iteration(V, F, max_movement)
+    #new_V2 = ARAP_iteration(new_V, F, max_movement)
     
     #show_mesh(V, F, selected_obj, context)
     show_mesh(new_V, F, selected_obj, context)
