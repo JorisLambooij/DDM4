@@ -125,6 +125,8 @@ def global_step(vertices, rigid_matrices):
     
     # TODO: solve separately by x, y and z (use only a single vector)
 
+
+
     return [(1,1,1), (1,1,1), (1,1,1)]
     
 # Returns the left hand side of least-squares system
@@ -222,7 +224,10 @@ def show_mesh(vertices, faces, selected_obj, context):
 #########################################################################
 # You may place extra variables and functions here to keep your code tidy
 #########################################################################
-    
+
+d0I = Matrix()
+d0I_neg = Matrix()
+
 # Find the vertices within the bounding box by transforming them into the bounding box's local space and then checking on axis aligned bounds.
 def get_handle_vertices(vertices, bounding_box_transform, mesh_transform):
 
