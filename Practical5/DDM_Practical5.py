@@ -152,10 +152,17 @@ def global_step(vertices, rigid_matrices):
     g = ddm.Sparse_Matrix(g_vectors, len(edges), 3)
 
     rhsp2 = d0I.transposed() * weights_m * g
-    print(rhsp2)
-    rhs_x = rhsp1_x + rhsp2
-    rhs_y = rhsp1_y + rhsp2
-    rhs_z = rhsp1_z + rhsp2
+    rhs_x = []
+    rhs_y = []
+    rhs_z = []
+   
+    for tuplist in [zip(a,b) for a,b in zip(rhsp1_x.flatten(), rhsp2.flatten())]:
+        rhs_x += [i + j for i,j in tuplist]
+    for tuplist in [zip(a,b) for a,b in zip(rhsp1_y.flatten(), rhsp2.flatten())]:
+        rhs_y += [i + j for i,j in tuplist]
+    for tuplist in [zip(a,b) for a,b in zip(rhsp1_z.flatten(), rhsp2.flatten())]:
+        rhs_z += [i + j for i,j in tuplist]
+    print(rhs_x)
 
     v_i_x = lhs.solve(rhs_x)
     v_i_y = lhs.solve(rhs_y)
@@ -329,10 +336,10 @@ def show_mesh(vertices, faces, selected_obj, context):
     ob.rotation_euler = selected_obj.rotation_euler
     context.scene.objects.link(ob)
     
-    edges = edges
+    edgez = edges
     verts = vertices
     
-    me.from_pydata(verts, edges, faces)
+    me.from_pydata(verts, edgez, faces)
     me.update()
     return
 #########################################################################
