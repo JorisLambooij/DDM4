@@ -144,7 +144,7 @@ def global_step(vertices, rigid_matrices):
     i = 0;
     for edge in range(len(edges)):
         e = rigid_matrices[edges[edge][0]].dot(vertices[edges[edge][0]] - vertices[edges[edge][1]])
-        e += rigid_matrices[edges[edge][1]].dot(vertices[edges[edge][1]] - vertices[edges[edge][0]])
+        e -= rigid_matrices[edges[edge][1]].dot(vertices[edges[edge][1]] - vertices[edges[edge][0]])
         e /= 2
         g_vectors.append( (edge, 0, e[0]) )
         g_vectors.append( (edge, 1, e[1]) )
@@ -162,7 +162,6 @@ def global_step(vertices, rigid_matrices):
         rhs_y += [i + j for i,j in tuplist]
     for tuplist in [zip(a,b) for a,b in zip(rhsp1_z.flatten(), rhsp2.flatten())]:
         rhs_z += [i + j for i,j in tuplist]
-    #print(rhs_x)
 
     v_i_x = lhs.solve(rhs_x)
     v_i_y = lhs.solve(rhs_y)
