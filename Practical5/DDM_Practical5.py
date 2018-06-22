@@ -140,9 +140,36 @@ def global_step(vertices, rigid_matrices):
     
     # TODO: solve separately by x, y and z (use only a single vector)
 
+    g_vectors = []
+    for edge in range(len(edges)):
+        e = (vertices[edge[0]] - vertices[edge[1]]) * rigid_matrices[edge[0]]
+        e += (vertices[edge[1]] - vertices[edge[0]]) * rigid_matrices[edge[1]]
+        e /= 2
+        g_vectors.append(e)
+
+    rhsp2 = d0I.transposed() * weights * g_vectors
+    rhs_x = rhsp1_x + rhsp2
+    rhs_y = rhsp1_y + rhsp2
+    rhs_z = rhsp1_z + rhsp2
+
+    v_i_x = lhs.solve(rhs_x)
+    v_i_y = lhs.solve(rhs_y)
+    v_i_z = lhs.solve(rhs_z)
+
+    results = []
+    b_c = 0
+    i_c = 0
+    boundary_set = set(boundary_list)
+    for i in range(len(vertices)):
+        if i in boundary_set:
+            results.append(pB[b_c])
+            b_c += 1
+        else:
+            results.append( (v_i_x[i_c], v_i_y[i_c], v_i_z[i_c]) )
+            i_c += 1
 
 
-    return [(1,1,1), (1,1,1), (1,1,1)]
+    return results
     
 # Returns the left hand side of least-squares system
 def precompute(vertices, faces):
@@ -155,6 +182,7 @@ def precompute(vertices, faces):
     global weights
     weights = weights(vertices, faces)
 
+    global boundary_list
     boundary_set = set()
     for handle in handles:
         for vert_i in handle[0]:
@@ -169,6 +197,20 @@ def precompute(vertices, faces):
 
     lhs = d0I.transposed() * weights * d0I
     lhs.Cholesky()
+
+    global rhsp1_x, rhsp1_y, rhsp1_z, pB
+    b_v = []
+    for l, m in handles:
+        for ind in l:
+            b_v.append( (ind, m) )
+    b_v.sort(key=lambda tup: tup[0])
+    pB = [vertices[i].to_tuple() * m for i,m in b_v]
+    pbx = [vertices[i].x * m for i,m in b_v]
+    pby = [vertices[i].y * m for i,m in b_v]
+    pbz = [vertices[i].z * m for i,m in b_v]
+    rhsp1_x = (-1 * d0I.transposed()) * weights * d0B * pbx
+    rhsp1_y = (-1 * d0I.transposed()) * weights * d0B * pby
+    rhsp1_z = (-1 * d0I.transposed()) * weights * d0B * pbz
 
     return lhs
 
@@ -275,13 +317,18 @@ def show_mesh(vertices, faces, selected_obj, context):
 # You may place extra variables and functions here to keep your code tidy
 #########################################################################
 
-d0B
-d0I
-weights
-lhs
+d0I = None
+d0B = None
+weights = None
+lhs = None
+pB = None
+rhsp1_x = None
+rhsp1_y = None
+rhsp1_z = None
 handles = []
 one_rings = []
 edges = []
+boundary_list = []
 
 def build_edge_list(vertices, faces):
     global edges
