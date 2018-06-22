@@ -21,6 +21,8 @@ from numpy import identity
 #################################
 # Place additional imports here #
 #################################
+import math
+
 
 # Return a list of vertices
 def get_vertices(context):
@@ -41,15 +43,14 @@ def get_faces(context):
 
 # Returns the 1-ring (a list of vertex indices) for a vertex index
 def neighbor_indices(vertex_index, vertices, faces):
-    verts = [vertex_index]
+    verts = set()
     for f in faces:
         for i in range(3):
             if f[i] == vertex_index:
                 for j in range(3):
-                    if f[j] not in verts:
-                        verts.append(f[j])
+                    verts.add(f[j])
     verts.remove(vertex_index)
-    return verts
+    return list(verts)
     
 # Calculates the source (non-sparse) matrix P
 def source_matrix(p_index, vertices, neighbor_indices):
@@ -103,12 +104,27 @@ def local_step(source_vertices, target_vertices, list_of_1_rings):
 
 # Returns the triplets of sparse d_0 matrix
 def d_0(vertices, faces):
-    
-    return [(1,1,0.2), (1,2,0.3)]
+    d0_list = []
+    for e_i in range(len(edges)):
+        d0_list.append( (e_i, edges[e_i][0], -1) )
+        d0_list.append( (e_i, edges[e_i][1], 1) )
+
+    return d0_list
     
 # Return the sparse diagonal weight matrix W
 def weights(vertices, faces):
-    return ddm.Sparse_Matrix([], 1, 1)
+    weights = []
+    for edgeIndex in range(len(edges)):
+        neighb1 = set(neighbor_indices(edges[edgeIndex][0], vertices, faces))
+        neighb2 = set(neighbor_indices(edges[edgeIndex][1], vertices, faces))
+        sharedVerts = neighb1 & neighb2
+        w = 0.0
+        for vertex in sharedVerts:
+            w += 1 / math.tan((vertices[vertex] - vertices[edges[edgeIndex][0]]).angle(vertices[vertex] - vertices[edges[edgeIndex][1]]))
+        w /= 2
+        weights.append(w)
+    
+    return ddm.Sparse_Matrix(weights, range(len(edges)), range(len(edges)))
 
 # Returns the right hand side of least-squares system
 def RHS(vertices, faces):
@@ -124,9 +140,36 @@ def global_step(vertices, rigid_matrices):
     
     # TODO: solve separately by x, y and z (use only a single vector)
 
+    g_vectors = []
+    for edge in range(len(edges)):
+        e = (vertices[edge[0]] - vertices[edge[1]]) * rigid_matrices[edge[0]]
+        e += (vertices[edge[1]] - vertices[edge[0]]) * rigid_matrices[edge[1]]
+        e /= 2
+        g_vectors.append(e)
+
+    rhsp2 = d0I.transposed() * weights * g_vectors
+    rhs_x = rhsp1_x + rhsp2
+    rhs_y = rhsp1_y + rhsp2
+    rhs_z = rhsp1_z + rhsp2
+
+    v_i_x = lhs.solve(rhs_x)
+    v_i_y = lhs.solve(rhs_y)
+    v_i_z = lhs.solve(rhs_z)
+
+    results = []
+    b_c = 0
+    i_c = 0
+    boundary_set = set(boundary_list)
+    for i in range(len(vertices)):
+        if i in boundary_set:
+            results.append(pB[b_c])
+            b_c += 1
+        else:
+            results.append( (v_i_x[i_c], v_i_y[i_c], v_i_z[i_c]) )
+            i_c += 1
 
 
-    return [(1,1,1), (1,1,1), (1,1,1)]
+    return results
     
 # Returns the left hand side of least-squares system
 def precompute(vertices, faces):
@@ -135,7 +178,41 @@ def precompute(vertices, faces):
     
     # TODO: construct LHS with the elements above and Cholesky it
 
-    return ddm.Sparse_Matrix([], 1, 1)
+    d0_list = d_0(vertices, faces)
+    global weights
+    weights = weights(vertices, faces)
+
+    global boundary_list
+    boundary_set = set()
+    for handle in handles:
+        for vert_i in handle[0]:
+            boundary_set.add(vert_i)
+    boundary_list = list(boundary_set).sort()
+
+    d0B_list, d0I_list = slice_triplets(d0_list, boundary_list)
+    
+    global d0I, d0B
+    d0I = ddm.Sparse_Matrix(d0I_list, len(edges), len(vertices) - len(boundary_list))
+    d0B = ddm.Sparse_Matrix(d0B_list, len(edges), len(boundary_list))
+
+    lhs = d0I.transposed() * weights * d0I
+    lhs.Cholesky()
+
+    global rhsp1_x, rhsp1_y, rhsp1_z, pB
+    b_v = []
+    for l, m in handles:
+        for ind in l:
+            b_v.append( (ind, m) )
+    b_v.sort(key=lambda tup: tup[0])
+    pB = [(vertices[i] * m).to_tuple() for i,m in b_v]
+    pbx = [(vertices[i] * m).x for i,m in b_v]
+    pby = [(vertices[i] * m).y for i,m in b_v]
+    pbz = [(vertices[i] * m).z for i,m in b_v]
+    rhsp1_x = (-1 * d0I.transposed()) * weights * d0B * pbx
+    rhsp1_y = (-1 * d0I.transposed()) * weights * d0B * pby
+    rhsp1_z = (-1 * d0I.transposed()) * weights * d0B * pbz
+
+    return lhs
 
 # Initial guess, returns a list of identity matrices for each vertex
 def initial_guess(vertices):
@@ -185,7 +262,7 @@ def DDM_Practical5(context):
     tolerance = 0.1
     max_iterations = 100
     
-    global one_rings, handles
+    global one_rings, handles, lhs
     selected_obj = context.scene.objects.active
     print (numpy.identity(3))
     print("Getting handles")
@@ -194,6 +271,8 @@ def DDM_Practical5(context):
     print ("Getting mesh data")
     V = get_vertices(context)
     F = get_faces(context)
+
+    build_edge_list(V, F)
     
     print ("Creating one-Rings list")
     one_rings = []
@@ -201,7 +280,7 @@ def DDM_Practical5(context):
         one_rings.append(neighbor_indices(i, V, F))
     
     print ("Precomputing Cholesky")
-    # TODO: precompute
+    lhs = precompute(V, F)
     print ("ARAP-ing...")
     # TODO: initial guess
     initial_Ri = numpy.identity(3)
@@ -228,10 +307,8 @@ def show_mesh(vertices, faces, selected_obj, context):
     ob.rotation_euler = selected_obj.rotation_euler
     context.scene.objects.link(ob)
     
-    edges = []
-    verts = []
-    for v in vertices:
-        verts.append( tuple(list(v)) )
+    edges = edges
+    verts = vertices
     
     me.from_pydata(verts, edges, faces)
     me.update()
@@ -240,8 +317,33 @@ def show_mesh(vertices, faces, selected_obj, context):
 # You may place extra variables and functions here to keep your code tidy
 #########################################################################
 
-d0I = Matrix()
-d0I_neg = Matrix()
+d0I = None
+d0B = None
+weights = None
+lhs = None
+pB = None
+rhsp1_x = None
+rhsp1_y = None
+rhsp1_z = None
+handles = []
+one_rings = []
+edges = []
+boundary_list = []
+
+def build_edge_list(vertices, faces):
+    global edges
+    edge_set = set()
+    for triangle in faces:
+        for i in range(3):
+            j = i + 1
+            if j == 3:
+                j = 0
+            edge = (triangle[i], triangle[j])
+            edge_r = (triangle[j], triangle[i])
+            if edge not in edge_set and edge_r not in edge_set:
+                edges.append( edge )
+                edge_set.add(edge)
+    return
 
 # Find the vertices within the bounding box by transforming them into the bounding box's local space and then checking on axis aligned bounds.
 def get_handle_vertices(vertices, bounding_box_transform, mesh_transform):
