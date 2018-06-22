@@ -205,9 +205,9 @@ def precompute(vertices, faces):
             b_v.append( (ind, m) )
     b_v.sort(key=lambda tup: tup[0])
     pB = [(vertices[i] * m).to_tuple() for i,m in b_v]
-    pbx = [vertices[i].x * m for i,m in b_v]
-    pby = [vertices[i].y * m for i,m in b_v]
-    pbz = [vertices[i].z * m for i,m in b_v]
+    pbx = [(vertices[i] * m).x for i,m in b_v]
+    pby = [(vertices[i] * m).y for i,m in b_v]
+    pbz = [(vertices[i] * m).z for i,m in b_v]
     rhsp1_x = (-1 * d0I.transposed()) * weights * d0B * pbx
     rhsp1_y = (-1 * d0I.transposed()) * weights * d0B * pby
     rhsp1_z = (-1 * d0I.transposed()) * weights * d0B * pbz
